@@ -204,7 +204,6 @@ export class FrontMatterService {
 
     /**
      * hexo_id：永久唯一 ID，只在第一次生成
-     * todo uid查重
      */
     //uuid
     if (result.hexo_id == null) {

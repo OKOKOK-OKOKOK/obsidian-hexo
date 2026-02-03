@@ -139,23 +139,19 @@ export default class HexoSyncPlugin extends Plugin {
       const result =
         this.frontMatter.ensureAndNormalize(file, rawContent);
 
-      if (result.changed) {
-        this.logger.log(`[INFO] Front Matter normalized: ${file.name}`);
-      }
+      /**
+       * 将fm是否改变 写入日志
+       */
+      this.logger.log(
+          result.changed
+              ? `[INFO] Front Matter updated: ${file.name}`
+              : `[INFO] Front Matter unchanged: ${file.name}`
+      );
 
       /**
        * 写入md文件内容
        */
       fs.writeFileSync(targetFilePath, result.content, 'utf-8');
-
-      /**
-       * 将fm是否改变 写入日志
-       */
-      this.logger.log(
-        result.changed
-          ? `[INFO] Front Matter updated: ${file.name}`
-          : `[INFO] Front Matter unchanged: ${file.name}`
-      );
 
       /**
        * 同步成功写入日志
