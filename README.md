@@ -26,3 +26,22 @@ v4uid
 需要看ob官方教程；
 
 可以在 IDEA 配置 File Watcher：保存 TS 自动执行 npm run dev
+
+# 代码
+
+在 JavaScript / TypeScript 里，
+“访问一个不存在的对象属性”是完全合法的，结果是 undefined。
+
+在 JS 中：
+value == null
+等价于：
+value === null || value === undefined
+
+Obsidian 插件不是 Node 项目，它不会做模块解析
+main.js 里有 require('./logger')，
+但 Obsidian 只保证能加载 main.js 本身，
+不会自动加载同目录下的其他 JS 模块，
+必须全部打包成一个mainjs
+"build": "node esbuild.config.mjs",
+
+增加新功能的日志填写

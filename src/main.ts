@@ -29,20 +29,12 @@ export default class HexoSyncPlugin extends Plugin {
 
   async onload() {
 
-    /**
-     * 内部声明frontmatter
-     */
-    this.frontMatter = new FrontMatterService();
-
-    /**
-     * 加载logger
-     */
     try {
       const adapter = this.app.vault.adapter;
 
       if (adapter instanceof FileSystemAdapter) {
         /**
-         * 插件数据目录
+         * 插件数据目录,实际上就是log文件位置
          */
         const pluginDataDir = path.join(
           adapter.getBasePath(),
@@ -53,11 +45,14 @@ export default class HexoSyncPlugin extends Plugin {
         );
 
         this.logger = new Logger(pluginDataDir);
+        /**
+         * 需要先初始化logger再初始化fm，不然报错
+         */
+        this.frontMatter = new FrontMatterService(this.logger);
+
         this.logger.log('[INFO] Plugin loaded');
       }
-      /**
-       * 加载logger成功
-       */
+
       new Notice('Hexo Sync Plugin loaded');
     } catch (err) {
       console.error('Plugin load failed:', err);

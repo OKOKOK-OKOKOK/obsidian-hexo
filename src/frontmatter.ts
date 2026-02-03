@@ -1,6 +1,9 @@
 // src/frontmatter.ts
 import { TFile } from 'obsidian';
 import * as path from 'path';
+import { randomUUID } from 'crypto';
+import {Logger} from "./logger";
+
 
 /**
  * 表示 Front Matter 处理结果的接口
@@ -13,8 +16,11 @@ export interface FrontMatterResult {
 
 /**
  * 处理 Front Matter 的服务类
+ * 构造函数
  */
 export class FrontMatterService {
+
+  constructor(private logger?: Logger) {}
 
   /**
    * 主入口：确保 Front Matter 符合 Hexo 规范
@@ -23,6 +29,7 @@ export class FrontMatterService {
     file: TFile,
     raw: string
   ): FrontMatterResult {
+    this.logger?.log(`[FM] start ${file.path}`);
 
     /**
      * 解析 Front Matter
@@ -165,6 +172,7 @@ export class FrontMatterService {
 
     // title
     result.title ??= path.basename(file.name, '.md');
+    this.logger?.log(`[FM] ${file.path}`);
 
     /**
    * 保证创建日期不会被修改
@@ -172,6 +180,7 @@ export class FrontMatterService {
     // date
     if (result.date == null) {
       result.date = this.formatDate(new Date()); // 只在没有 date 时设置
+      this.logger?.log(`[FM] set date for ${file.path}`);
     }
 
     /**
@@ -179,15 +188,28 @@ export class FrontMatterService {
      */
     // updated
     result.updated = this.formatDate(new Date());
+    this.logger?.log(`[FM] updated ${file.path}`);
 
     // tags
     if (typeof result.tags === 'string') {
       result.tags = [result.tags];
+      this.logger?.log(`[FM] set tags for ${file.path}`);
     }
 
     // categories
     if (typeof result.categories === 'string') {
       result.categories = [result.categories];
+      this.logger?.log(`[FM] set categories for ${file.path}`);
+    }
+
+    /**
+     * hexo_id：永久唯一 ID，只在第一次生成
+     * todo uid查重
+     */
+    //uuid
+    if (result.hexo_id == null) {
+      result.hexo_id = randomUUID();
+      this.logger?.log(`[FM] hexo id for ${file.path}`);
     }
 
     return result;

@@ -7,6 +7,12 @@ import * as path from 'path';
 export class Logger {
   private logFilePath: string;
 
+  /**
+   *
+   * @param logDir log文件所在的文件夹位置
+   * todo 以后还需要根据日期生成不同的log
+   * todo log分级别
+   */
   constructor(logDir: string) {
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });

@@ -1,0 +1,12 @@
+{
+	"id": "obsidian-hexo",
+	"name": "Obsidian2Hexo",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Sync Obsidian notes to Hexo blog.",
+	"author": "OKOKOK-OKOKOK",
+	"authorUrl": "https://github.com/OKOKOK-OKOKOK",
+	"fundingUrl": "https://github.com/OKOKOK-OKOKOK",
+	"isDesktopOnly": false,
+	"main": "main.js"
+}
