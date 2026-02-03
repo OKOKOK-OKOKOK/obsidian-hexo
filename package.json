@@ -1,0 +1,21 @@
+{
+  "name": "obsidian-hexo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "sync": "powershell Copy-Item -Recurse -Force dist\\* \"D:\\Obsidian\\PluginTest\\.obsidian\\plugins\\obsidian-hexo\"",
+    "dev": "npm run build && npm run sync",
+    "clean": "rimraf dist"
+  },
+  "keywords": ["obsidian", "hexo", "plugin"],
+  "author": "OKOKOK-OKOKOK",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^25.2.0",
+    "obsidian": "^1.11.4",
+    "typescript": "^5.5.3"
+  },
+  "private": true
+}

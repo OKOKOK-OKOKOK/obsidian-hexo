@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node", "obsidian"],     // 引入 Node.js 和 Obsidian 类型声明
+    "outDir": "dist",                  // 编译输出目录
+    "rootDir": "src",                  // TS 源码根目录
+  },
+  "include": ["src"],                  // 编译 src 下的所有 TS 文件
+  "exclude": ["node_modules", "dist"]  // 排除 node_modules 和 dist
+}
