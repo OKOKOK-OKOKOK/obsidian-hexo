@@ -5,13 +5,12 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "node esbuild.config.mjs",
-    "sync": "powershell Copy-Item -Force main.js,manifest.json \"D:\\Obsidian\\PluginTest\\.obsidian\\plugins\\obsidian-hexo\"",
+    "sync": "powershell Copy-Item -Force dist\\main.js,manifest.json \"D:\\Obsidian\\PluginTest\\.obsidian\\plugins\\obsidian-hexo\"",
     "dev": "npm run build && npm run sync",
     "clean": "rimraf dist"
   },
   "keywords": [
     "obsidian",
-    "hexo",
     "plugin"
   ],
   "author": "OKOKOK-OKOKOK",
