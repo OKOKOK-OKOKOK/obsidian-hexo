@@ -58,6 +58,21 @@ main.js 里有 require('./logger')，
 必须全部打包成一个mainjs
 "build": "node esbuild.config.mjs",
 
-增加新功能的日志填写
+增加新功能的日志填写,先基础功能，然后补充日志，最后再调试
 
-manifest有可能需要同步到ob里面，或者人为修改main为mainjs
+//manifest有可能需要同步到ob里面，或者人为修改main为mainjs
+
+我在本地添加了一个新分支，如何将该分支同步到github
+
+transform里面本来没有用到file，是不是可以不要这个参数？
+
+```
+//构造函数
+        constructor(private logger?: Logger) {}
+
+
+//用‘？’避免undefined
+        this.logger?.log(
+            `[INFO] Markdown transformed (obsidian → hexo): ${file.name}`
+        );
+```

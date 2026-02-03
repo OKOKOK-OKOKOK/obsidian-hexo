@@ -6,6 +6,6 @@ esbuild.build({
     platform: "node",
     format: "cjs",
     target: "es2018",
-    outfile: "main.js",
+    outfile: "dist/main.js",
     external: ["obsidian"],
 });
