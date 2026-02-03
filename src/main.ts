@@ -4,6 +4,7 @@ import * as path from 'path';
 import {Logger} from './logger';
 import {FrontMatterService} from './frontmatter';
 import {MarkdownTransformService} from "./markdown-transform-service";
+import {AttachmentProcessResult, AttachmentService} from "./attachment-service";
 
 interface ResolvedPaths {
     absoluteSrcPath: string;
@@ -29,9 +30,14 @@ export default class HexoSyncPlugin extends Plugin {
     private logger!: Logger;
 
     /**
-     * 声明前文
+     * 声明fm部分
      */
     private frontMatter!: FrontMatterService;
+
+    /**
+     * 声明附件service部分
+     */
+    private attachmentService!: AttachmentService;
 
     /**
      * 清洗语法
@@ -63,6 +69,10 @@ export default class HexoSyncPlugin extends Plugin {
                 this.frontMatter = new FrontMatterService(this.logger);
 
                 this.markdownTransform = new MarkdownTransformService(this.logger);
+
+// 在 onload 中初始化
+                this.attachmentService = new AttachmentService(this.logger, 'D:\\Obsidian\\PluginTest\\Blog\\attachment');
+
 
                 this.logger.log('[INFO] Plugin loaded');
             }
@@ -114,12 +124,23 @@ export default class HexoSyncPlugin extends Plugin {
 
 //====================语法清洗
 
-            const transformedContent = this.markdownTransform.transform(file,content).content;
+            const transformedContent = this.markdownTransform.transform(file,content);
 
+
+//==============================创建同名文件夹，附件处理
+            const AttachmentProcessResult =
+                this.
+                attachmentService.
+                processAttachments(
+                    file,
+                    transformedContent.
+                        content,
+                    paths.
+                        targetDir);
 
 // ========================复制md文件
 
-            this.writeToHexo(paths, transformedContent);
+            this.writeToHexo(paths, transformedContent.content);
 
             this.logger.log(`[INFO] Sync success: ${file.name}`);
             new Notice('Hexo sync OK');
@@ -131,17 +152,6 @@ export default class HexoSyncPlugin extends Plugin {
             new Notice('Hexo sync failed');
         }
 
-//==============================创建同名文件夹
-        /*
-              if (!fs.existsSync(targetDir)) {
-                fs.mkdirSync(targetDir, { recursive: true });
-                this.logger.log(
-                    `[INFO] Created post directory: ${targetDir}`
-                );
-              }
-
-              new Notice(`tips:${this.HEXO_POST_DIR}`);
-        */
     }
 
     /**

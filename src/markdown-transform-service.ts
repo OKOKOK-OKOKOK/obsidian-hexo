@@ -29,26 +29,48 @@ export class MarkdownTransformService {
         // 2. 处理图片语法
         // 3. 清理 obsidian 特有语法
 
-        // Obsidian 图片语法 → 标准 Markdown
+
+        /**
+         * Obsidian 图片语法 → 标准 Markdown
+         */
         const imageResult = this.transformImageSyntax(content);
         content = imageResult.content;
         changed ||= imageResult.changed;
+        // this.logger?.log(
+        //     `[INFO] Markdown transformed imageResult(obsidian → hexo): ${file.name}`
+        // );
 
-        // Obsidian 内链语法处理
+        /**
+         * Obsidian 内链语法处理
+         */
         const linkResult = this.transformInternalLinks(content);
         content = linkResult.content;
         changed ||= linkResult.changed;
+        // this.logger?.log(
+        //     `[INFO] Markdown transformed linkResult(obsidian → hexo): ${file.name}`
+        // );
 
-        // 清理 Obsidian 特有残留
+        /**
+         * 清理 Obsidian 特有残留
+         */
         const cleanupResult = this.cleanupObsidianSyntax(content);
         content = cleanupResult.content;
         changed ||= cleanupResult.changed;
+        // this.logger?.log(
+        //     `[INFO] Markdown transformed cleanupResult(obsidian → hexo): ${file.name}`
+        // );
 
         this.logger?.log(
-            `[INFO] Markdown transformed (obsidian → hexo): ${file.name}`
+            `[INFO] Markdown transformed success(obsidian → hexo): ${file.name}`
         );
 
+        /*
+       留一下日志格式方便之后只用
+       this.logger?.info('[MD] ...');
+this.logger?.debug('[MD:image] ...');
+this.logger?.warn('[MD] ...');
 
+         */
         return {
             content,
             changed
