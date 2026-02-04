@@ -29,7 +29,7 @@ export class FrontMatterService {
     file: TFile,
     raw: string
   ): FrontMatterResult {
-    this.logger?.log(`[FM] start ${file.path}`);
+    this.logger?.info(`[FM] start ${file.path}`);
 
     /**
      * 解析 Front Matter
@@ -172,7 +172,7 @@ export class FrontMatterService {
 
     // title
     result.title ??= path.basename(file.name, '.md');
-    this.logger?.log(`[FM] ${file.path}`);
+    this.logger?.debug(`[FM] title ${file.path}`);
 
     /**
    * 保证创建日期不会被修改
@@ -180,7 +180,7 @@ export class FrontMatterService {
     // date
     if (result.date == null) {
       result.date = this.formatDate(new Date()); // 只在没有 date 时设置
-      this.logger?.log(`[FM] set date for ${file.path}`);
+      this.logger?.debug(`[FM] date ${file.path}`);
     }
 
     /**
@@ -188,18 +188,18 @@ export class FrontMatterService {
      */
     // updated
     result.updated = this.formatDate(new Date());
-    this.logger?.log(`[FM] updated ${file.path}`);
+    this.logger?.debug(`[FM] update ${file.path}`);
 
     // tags
     if (typeof result.tags === 'string') {
       result.tags = [result.tags];
-      this.logger?.log(`[FM] set tags for ${file.path}`);
+      this.logger?.debug(`[FM] tag ${file.path}`);
     }
 
     // categories
     if (typeof result.categories === 'string') {
       result.categories = [result.categories];
-      this.logger?.log(`[FM] set categories for ${file.path}`);
+      this.logger?.debug(`[FM] categories ${file.path}`);
     }
 
     /**
@@ -208,7 +208,7 @@ export class FrontMatterService {
     //uuid
     if (result.hexo_id == null) {
       result.hexo_id = randomUUID();
-      this.logger?.log(`[FM] hexo id for ${file.path}`);
+      this.logger?.debug(`[FM] hexo id ${file.path}`);
     }
 
     return result;

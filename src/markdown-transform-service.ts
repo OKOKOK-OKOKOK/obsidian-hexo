@@ -29,6 +29,7 @@ export class MarkdownTransformService {
         // 2. 处理图片语法
         // 3. 清理 obsidian 特有语法
 
+        this.logger?.debug(`[MD] start transform: ${file.name}`);
 
         /**
          * Obsidian 图片语法 → 标准 Markdown
@@ -36,9 +37,10 @@ export class MarkdownTransformService {
         const imageResult = this.transformImageSyntax(content);
         content = imageResult.content;
         changed ||= imageResult.changed;
-        // this.logger?.log(
-        //     `[INFO] Markdown transformed imageResult(obsidian → hexo): ${file.name}`
-        // );
+        if (imageResult.changed) {
+            this.logger?.debug(`[MD:image] transformed`);
+        }
+
 
         /**
          * Obsidian 内链语法处理
@@ -46,9 +48,21 @@ export class MarkdownTransformService {
         const linkResult = this.transformInternalLinks(content);
         content = linkResult.content;
         changed ||= linkResult.changed;
-        // this.logger?.log(
-        //     `[INFO] Markdown transformed linkResult(obsidian → hexo): ${file.name}`
-        // );
+        if (linkResult.changed) {
+            this.logger?.debug(`[MD:link] transformed`);
+        }
+
+        /**
+         * 将附件路径的attachment改为md同名，
+         * 便于hexo辨认
+         */
+        const attachmentPathResult = this.transformAttachmentPath(content,file);
+        content = attachmentPathResult.content;
+        changed ||= attachmentPathResult.changed;
+        if (attachmentPathResult.changed) {
+            this.logger?.debug(`[MD:attachmentPath] transformed`);
+        }
+
 
         /**
          * 清理 Obsidian 特有残留
@@ -56,13 +70,13 @@ export class MarkdownTransformService {
         const cleanupResult = this.cleanupObsidianSyntax(content);
         content = cleanupResult.content;
         changed ||= cleanupResult.changed;
-        // this.logger?.log(
-        //     `[INFO] Markdown transformed cleanupResult(obsidian → hexo): ${file.name}`
-        // );
+        if (cleanupResult.changed) {
+            this.logger?.debug(`[MD:cleanup] transformed`);
+        }
 
-        this.logger?.log(
-            `[INFO] Markdown transformed success(obsidian → hexo): ${file.name}`
-        );
+        if (changed) {
+            this.logger?.info(`[MD] transformed: ${file.name}`);
+        }
 
         /*
        留一下日志格式方便之后只用
@@ -76,7 +90,7 @@ this.logger?.warn('[MD] ...');
             changed
         };
     }
-
+//=============================功能函数
     /**
      * 处理 Obsidian 图片语法
      * ![[image.png]] → ![](image.png)
@@ -149,4 +163,32 @@ this.logger?.warn('[MD] ...');
 
         return { content, changed };
     }
+
+    /**
+     * done 需要将附件路径中的1attachment改为md同名路径，不然附件复制成功之后是没办法正确读取附件的
+     */
+    /**
+     * 修正附件路径
+     * xxx.png → <md-name>/xxx.png
+     */
+    private transformAttachmentPath(
+        input: string,
+        file: TFile
+    ): MarkdownTransformResult {
+
+        let changed = false;
+        const mdName = file.basename;
+
+        const content = input.replace(
+            /!\[\]\((?:\.\/)?attachment\/(.+?)\)/g,
+            (_, fileName) => {
+                changed = true;
+                return `![](${mdName}/${fileName})`;
+            }
+        );
+
+        return { content, changed };
+    }
+
+
 }
