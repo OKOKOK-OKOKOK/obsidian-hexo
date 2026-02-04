@@ -6,15 +6,20 @@ npm install --save-dev @types/node
 
 npm install obsidian --save-dev
 
+需要esbuild来帮助生成单个mainjs文件
+
 # 功能
 
 先基础功能，然后补充日志，最后再调试
 
-//manifest有可能需要同步到ob里面，或者人为修改main为mainjs
+插件ui页面，按钮最后做，优先完善功能代码；
+
+路径修改可选，
 
 按键提供一键全体初始化功能，这样就不用手动保存每个文件才能生成fm了
 
-插件ui页面，按钮最后做，优先完善功能代码；
+//manifest有可能需要同步到ob里面，或者人为修改main为mainjs
+
 /*
 然后再在纯净版本解决附件问题，
 链接的图片附件，ob中统一放在同级别的attachment文件夹中，hexo是放在各自对应的同名文件夹中，
@@ -22,11 +27,12 @@ npm install obsidian --save-dev
 其中md content部分在fm部分有涉及到，是需要合在一起编写该功能，还是说另外创建ts单独写
 */
 
-有了uuid之后，备份和更新的逻辑就需要重新修改了，应该怎么修改，
-
-代码重构；
-
 # 代码
+```
+打日志
+感觉奇怪的地方用warn
+感觉不可能出错的地方用error
+```
 
 ```
 在 JavaScript / TypeScript 里，
@@ -48,6 +54,7 @@ main.js 里有 require('./logger')，
 必须全部打包成一个mainjs
 "build": "node esbuild.config.mjs",
 ```
+
 ```
 //构造函数
         constructor(private logger?: Logger) {}

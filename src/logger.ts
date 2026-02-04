@@ -1,82 +1,90 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-/**
- * 简单日志工具类
- */
-export class Logger {
-  private logFilePath: string;
+export enum LogLevel {
+  DEBUG = 'DEBUG',
+  INFO = 'INFO',
+  WARN = 'WARN',
+  ERROR = 'ERROR',
+}
 
+export class Logger {
+  private logDir: string;
   /**
-   *
-   * @param logDir log文件所在的文件夹位置
-   * todo 以后还需要根据日期生成不同的log
-   * todo log分级别
+   * todo 需要有按钮可以直接修改这个值
+   * @private
    */
+  private debugEnabled = true
+
   constructor(logDir: string) {
+    this.logDir = logDir;
+
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }
-
-    this.logFilePath = path.join(logDir, 'hexo-sync.log');
   }
 
   /**
-   * 写入一条日志
+   * 获取当天的日志文件路径
+   * hexo-sync-2026-02-04.log
    */
-  log(message: string) {
-    const time = new Date().toISOString();
-    const line = `[${time}] ${message}\n`;
+  private getLogFilePath(): string {
+    const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    return path.join(this.logDir, `hexo-sync-${date}.log`);
+  }
 
-    try {
-      fs.appendFileSync(this.logFilePath, line, 'utf-8');
-    } catch (err) {
-      // 日志失败不能影响主流程
-      console.error('Logger failed:', err);
+  /**
+   * DEBUG 日志文件路径
+   */
+  private getDebugLogPath(): string {
+    const date = new Date().toISOString().slice(0, 10);
+    return path.join(this.logDir, `hexo-sync-debug-${date}.log`);
+  }
+
+  /**
+   * 写日志
+   * @param level
+   * @param message
+   * @private
+   */
+  private write(level: LogLevel, message: string) {
+    const time = new Date().toISOString();
+    const line = `[${time}][${level}] ${message}\n`;
+
+    if(!(level===LogLevel.DEBUG)) {
+      try {
+        fs.appendFileSync(this.getLogFilePath(), line, 'utf-8');
+      } catch (err) {
+        // 日志失败不能影响主流程
+        console.error('Logger failed:', err);
+      }
+    }else{
+      try {
+        fs.appendFileSync(this.getDebugLogPath(), line, 'utf-8');
+      }catch (err){
+        //debug日志失败
+        console.error('LoggerDebug failed:', err);
+      }
     }
   }
+
+  debug(msg: string) {
+    if (!this.debugEnabled) return;
+    this.write(LogLevel.DEBUG, msg);
+  }
+
+  info(msg: string) {
+    this.write(LogLevel.INFO, msg);
+  }
+
+  warn(msg: string) {
+    this.write(LogLevel.WARN, msg);
+  }
+
+  error(msg: string, err?: unknown) {
+    this.write(
+        LogLevel.ERROR,
+        err ? `${msg} | ${String(err)}` : msg
+    );
+  }
 }
-
-/*package
-{
-  "name": "obsidian-hexo",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/index.js",
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "sync": "powershell Copy-Item -Recurse -Force dist\\* \"D:\\Obsidian\\PluginTest\\.obsidian\\plugins\\obsidian-hexo\"",
-    "dev": "npm run build && npm run sync",
-    "clean": "rimraf dist"
-  },
-  "keywords": ["obsidian", "hexo", "plugin"],
-  "author": "OKOKOK-OKOKOK",
-  "license": "ISC",
-  "devDependencies": {
-    "@types/node": "^25.2.0",
-    "obsidian": "^1.11.4",
-    "typescript": "^5.5.3"
-  },
-  "private": true
-}
-
- */
-
-/*tsconfig
-{
-  "compilerOptions": {
-    "target": "es2016",
-    "module": "commonjs",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "types": ["node", "obsidian"],     // 引入 Node.js 和 Obsidian 类型声明
-    "outDir": "dist",                  // 编译输出目录
-    "rootDir": "src",                  // TS 源码根目录
-  },
-  "include": ["src"],                  // 编译 src 下的所有 TS 文件
-  "exclude": ["node_modules", "dist"]  // 排除 node_modules 和 dist
-}
-
- */

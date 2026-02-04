@@ -4,7 +4,7 @@ import * as path from 'path';
 import {Logger} from './logger';
 import {FrontMatterService} from './frontmatter';
 import {MarkdownTransformService} from "./markdown-transform-service";
-import {AttachmentProcessResult, AttachmentService} from "./attachment-service";
+import {AttachmentService} from "./attachment-service";
 
 interface ResolvedPaths {
     absoluteSrcPath: string;
@@ -74,7 +74,7 @@ export default class HexoSyncPlugin extends Plugin {
                 this.attachmentService = new AttachmentService(this.logger, 'D:\\Obsidian\\PluginTest\\Blog\\attachment');
 
 
-                this.logger.log('[INFO] Plugin loaded');
+                this.logger.info('Plugin loaded');
             }
 
             new Notice('Hexo Sync Plugin loaded');
@@ -86,7 +86,7 @@ export default class HexoSyncPlugin extends Plugin {
         this.registerEvent(
             this.app.vault.on('modify', (file) => {
                 if (file instanceof TFile && file.extension === 'md') {
-                    this.logger.log(`[INFO] File modified: ${file.path}`);
+                    this.logger.info(`[INFO] File modified: ${file.path}`);
                     this.syncSingleMarkdown(file);
                 }
             })
@@ -104,7 +104,7 @@ export default class HexoSyncPlugin extends Plugin {
             /**
              * 同步开始
              */
-            this.logger.log(`[INFO] Sync start: ${file.path}`);
+            this.logger.info(`Sync start: ${file.path}`);
 
             const adapter = this.app.vault.adapter;
 
@@ -127,9 +127,9 @@ export default class HexoSyncPlugin extends Plugin {
             const transformedContent = this.markdownTransform.transform(file,content);
 
 
-//==============================创建同名文件夹，附件处理
-            const AttachmentProcessResult =
-                this.
+//==============================附件处理
+
+            this.
                 attachmentService.
                 processAttachments(
                     file,
@@ -142,12 +142,12 @@ export default class HexoSyncPlugin extends Plugin {
 
             this.writeToHexo(paths, transformedContent.content);
 
-            this.logger.log(`[INFO] Sync success: ${file.name}`);
+            this.logger.info(`Sync success: ${file.name}`);
             new Notice('Hexo sync OK');
 
         } catch (error) {
-            this.logger.log(
-                `[ERROR] Sync failed for ${file.path}: ${String(error)}`
+            this.logger.error(
+                `Sync failed for ${file.path}: ${String(error)}`
             );
             new Notice('Hexo sync failed');
         }
@@ -182,8 +182,8 @@ export default class HexoSyncPlugin extends Plugin {
 
         // 只同步 Obsidian Blog 目录
         if (!absoluteSrcPath.startsWith(this.OBSIDIAN_BLOG_DIR)) {
-            this.logger.log(
-                `[INFO] Skip non-blog file: ${absoluteSrcPath}`
+            this.logger.info(
+                `Skip non-blog file: ${absoluteSrcPath}`
             );
             return null;
         }
@@ -233,10 +233,10 @@ export default class HexoSyncPlugin extends Plugin {
         /**
          * 将fm是否改变 写入日志
          */
-        this.logger.log(
+        this.logger.info(
             result.changed
-                ? `[INFO] Front Matter updated: ${file.name}`
-                : `[INFO] Front Matter unchanged: ${file.name}`
+                ? `Front Matter updated: ${file.name}`
+                : `Front Matter unchanged: ${file.name}`
         );
         return result;
 
