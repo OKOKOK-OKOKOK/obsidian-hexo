@@ -44,6 +44,15 @@ export class FrontMatterService {
      */
     const changed =
       JSON.stringify(frontMatter) !== JSON.stringify(normalized);
+
+    /**
+     * 将fm是否改变 写入日志
+     */
+    this.logger?.debug(
+        changed
+            ? `[FM] Front Matter updated: ${file.name}`
+            : `[FM] Front Matter unchanged: ${file.name}`
+    );
     /**
      * 序列化 Front Matter
      */

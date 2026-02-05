@@ -10,14 +10,58 @@ npm install obsidian --save-dev
 
 # 功能
 
+```
+顺序替换，
+md
+md附件处理，
+    原本清洗语法可以减少处理附件的代码逻辑量，但是顺序没法改变，
+md语法清洗，
+md回写
+
+AttachmentService
+    现实世界（磁盘）
+    不关心 Hexo
+MarkdownTransform
+    纯文本
+    不碰文件系统
+SyncPipeline
+    决定顺序
+    保证信息不丢
+
+任何会改变“文件名 / 路径 / 标识符”的操作，
+都必须发生在“最后一次使用原始信息之后”。
+
+```
+使用 hexo new 会让 fluid 会自动创建同名文件夹，现在已经不需要这一个功能了，需要关闭；
 先基础功能，然后补充日志，最后再调试
+
+使用hexo和fluid的话，附件名字中不能带有空格，可以有中文
 
 插件ui页面，按钮最后做，优先完善功能代码；
 
 路径修改可选，
 
 按键提供一键全体初始化功能，这样就不用手动保存每个文件才能生成fm了
+```
+尝试了没有用
+：关闭 Fancybox 图片增强
 
+在 themes/fluid/_config.yml 里：
+
+post:
+image_zoom:
+enable: false
+```
+```
+hexo解析路径和md文档逻辑写的不一样
+_posts/
+├─ test.md
+├─ test/
+│  └─ image.png
+并且在 test.md 里：
+
+![](image.png)
+```
 //manifest有可能需要同步到ob里面，或者人为修改main为mainjs
 
 /*

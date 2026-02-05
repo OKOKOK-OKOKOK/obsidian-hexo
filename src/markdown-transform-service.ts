@@ -38,7 +38,7 @@ export class MarkdownTransformService {
         content = imageResult.content;
         changed ||= imageResult.changed;
         if (imageResult.changed) {
-            this.logger?.debug(`[MD:image] transformed`);
+            this.logger?.debug(`[MD] imagePathTransformed`);
         }
 
 
@@ -49,7 +49,7 @@ export class MarkdownTransformService {
         content = linkResult.content;
         changed ||= linkResult.changed;
         if (linkResult.changed) {
-            this.logger?.debug(`[MD:link] transformed`);
+            this.logger?.debug(`[MD] linkTransformed`);
         }
 
         /**
@@ -60,7 +60,7 @@ export class MarkdownTransformService {
         content = attachmentPathResult.content;
         changed ||= attachmentPathResult.changed;
         if (attachmentPathResult.changed) {
-            this.logger?.debug(`[MD:attachmentPath] transformed`);
+            this.logger?.debug(`[MD] attachmentPathTransformed`);
         }
 
 
@@ -71,11 +71,11 @@ export class MarkdownTransformService {
         content = cleanupResult.content;
         changed ||= cleanupResult.changed;
         if (cleanupResult.changed) {
-            this.logger?.debug(`[MD:cleanup] transformed`);
+            this.logger?.debug(`[MD] cleanupTransformed`);
         }
 
         if (changed) {
-            this.logger?.info(`[MD] transformed: ${file.name}`);
+            this.logger?.info(`[MD] successTransformed: ${file.name}`);
         }
 
         /*
@@ -165,11 +165,8 @@ this.logger?.warn('[MD] ...');
     }
 
     /**
-     * done 需要将附件路径中的1attachment改为md同名路径，不然附件复制成功之后是没办法正确读取附件的
-     */
-    /**
-     * 修正附件路径
-     * xxx.png → <md-name>/xxx.png
+     * 将 Obsidian attachment 路径转换为 Hexo images 绝对路径
+     * e.g. ![](attachment/a.png) -> ![](/images/<mdName>/a.png)
      */
     private transformAttachmentPath(
         input: string,
@@ -180,15 +177,32 @@ this.logger?.warn('[MD] ...');
         const mdName = file.basename;
 
         const content = input.replace(
-            /!\[\]\((?:\.\/)?attachment\/(.+?)\)/g,
-            (_, fileName) => {
-                changed = true;
-                return `![](${mdName}/${fileName})`;
+            /!\[[^\]]*]\((?:\.\/)?attachment\/(.+?)\)/g,
+            (_, rawFileName) => {
+                const safeFileName = this.normalizeFileName(rawFileName);
+
+                changed = !(safeFileName == rawFileName);
+
+                return `![](/images/${mdName}/${safeFileName})`;
             }
         );
 
         return { content, changed };
     }
+
+    /**
+     * 将文件名转换为 Web 安全格式
+     * - 空格 -> _
+     * - 移除特殊字符
+     */
+    private normalizeFileName(fileName: string): string {
+        return fileName
+            .trim()
+            .replace(/\s+/g, '_')        // 空格 → _
+            .replace(/[^\w.-]/g, '');    // 移除非法字符
+    }
+
+
 
 
 }

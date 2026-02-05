@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Logger } from './logger';
 
+
 export interface AttachmentProcessResult {
     content: string; // 处理后的 md 内容
     changed: boolean; // 是否修改过路径
@@ -33,47 +34,97 @@ export class AttachmentService {
         content: string,
         targetDir: string
     ): AttachmentProcessResult {
+
         let changed = false;
         let newContent = content;
 
-        // 匹配 Markdown 图片语法 ![](xxx)
-        const imageRegex = /!\[.*?]\((.*?)\)/g;
+        /**
+         * 同时匹配：
+         * 1. ![](xxx)
+         * 2. ![[xxx]]
+         */
+        const imageRegex =
+            /!\[\[(.+?)]]|!\[[^\]]*]\((.+?)\)/g;
 
-        newContent = newContent.replace(imageRegex, (_, imgPath) => {
-            // 取文件名
-            const imgName = path.basename(imgPath);
+        newContent = newContent.replace(
+            imageRegex,
+            (_, obsidianPath, markdownPath) => {
 
-            // 目标 Hexo 文件夹
-            const destPath = path.join(targetDir, imgName);
+                /**
+                 * 原始路径（Obsidian 优先）
+                 */
+                const rawPath = obsidianPath ?? markdownPath;
+                if (!rawPath) return _;
 
-            // 创建目标文件夹
-            if (!fs.existsSync(targetDir)) {
-                fs.mkdirSync(targetDir, { recursive: true });
-                this.logger?.info(`Created target directory for attachment: ${targetDir}`);
+                /**
+                 * 真实文件名（此阶段不做任何清洗）
+                 */
+                const imgName = path.basename(rawPath);
+
+                /**
+                 * 源路径：Obsidian attachment
+                 */
+                const srcPath = path.join(this.OBS_ATTACHMENT_DIR, imgName);
+
+                /**
+                 * 目标路径：Hexo images/<mdName>/
+                 */
+                //const destPath = path.join(targetDir, imgName);
+
+                /**
+                 * 安全目标路径
+                 */
+                const safeDestPath = path.join(targetDir, this.normalizeFileName(imgName));
+                    //this.normalizeFileName(destPath);
+
+                // 创建目标目录
+                if (!fs.existsSync(targetDir)) {
+                    fs.mkdirSync(targetDir, { recursive: true });
+                    this.logger?.debug(
+                        `[AS] Created target directory: ${targetDir}`
+                    );
+                }
+
+                // 附件不存在：保持原样（非常重要）
+                if (!fs.existsSync(srcPath)) {
+                    this.logger?.warn(
+                        `[AS] Attachment not found: ${srcPath}`
+                    );
+                    return _;
+                }
+
+                // 幂等复制
+                if (!fs.existsSync(safeDestPath)) {
+                    fs.copyFileSync(srcPath, safeDestPath);
+                    this.logger?.debug(
+                        `[AS] Copied attachment ${imgName}`
+                    );
+                }
+
+                changed = true;
+
+                /**
+                 * 注意：
+                 * 此时只负责改成 Hexo 路径
+                 * 不关心格式是否最终规范
+                 */
+                return `![](/images/${file.basename}/${imgName})`;
             }
-
-            // 在 Obsidian attachment 目录寻找文件
-            const srcPath = path.join(this.OBS_ATTACHMENT_DIR, imgName);
-
-            if (!fs.existsSync(srcPath)) {
-                this.logger?.warn(`Attachment not found: ${srcPath}`);
-                return `![](${imgPath})`; // 不改
-            }
-
-            // 复制附件
-            fs.copyFileSync(srcPath, destPath);
-            this.logger?.info(`Copied attachment ${imgName} to ${targetDir}`);
-
-            changed = true;
-
-            // 返回修改后的 Markdown 路径（相对 Hexo md 文件的同名目录）
-            return `![](${imgName})`;
-        });
-
-        if (changed) {
-            this.logger?.info(`Attachments processed for ${file.name}`);
-        }
+        );
 
         return { content: newContent, changed };
     }
+
+    /**
+     * 将附件文件名转换为 Web / Hexo 安全格式
+     */
+    private normalizeFileName(fileName: string): string {
+        return fileName
+            .trim()
+            .replace(/\s+/g, '_')      // 空格 → _
+            .replace(/[^\w.-]/g, '');  // 移除非法字符
+    }
+
+
+
 }

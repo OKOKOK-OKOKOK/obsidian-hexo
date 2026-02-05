@@ -7,8 +7,17 @@ import {MarkdownTransformService} from "./markdown-transform-service";
 import {AttachmentService} from "./attachment-service";
 
 interface ResolvedPaths {
+    /**
+     * 原来ob中的md文件绝对路径
+     */
     absoluteSrcPath: string;
+    /**
+     * 附件最后要去的文件夹
+     */
     targetDir: string;
+    /**
+     * md文件最后要去的路径
+     */
     targetFilePath: string;
 }
 
@@ -23,6 +32,12 @@ export default class HexoSyncPlugin extends Plugin {
      * Hexo 的 _posts 目录
      */
     private HEXO_POST_DIR = 'F:\\Blog\\hexo-blog\\source\\_posts';
+
+    /**
+     * Hexo的source/images目录
+     * 存放插件文件夹
+     */
+    private  HEXO_SRC_IMG_DIR = 'F:\\Blog\\hexo-blog\\source\\images';
 
     /**
      * 声明logger
@@ -73,7 +88,6 @@ export default class HexoSyncPlugin extends Plugin {
 // 在 onload 中初始化
                 this.attachmentService = new AttachmentService(this.logger, 'D:\\Obsidian\\PluginTest\\Blog\\attachment');
 
-
                 this.logger.info('Plugin loaded');
             }
 
@@ -86,7 +100,7 @@ export default class HexoSyncPlugin extends Plugin {
         this.registerEvent(
             this.app.vault.on('modify', (file) => {
                 if (file instanceof TFile && file.extension === 'md') {
-                    this.logger.info(`[INFO] File modified: ${file.path}`);
+                    this.logger.info(`[OBS2HEXO] File modified: ${file.path}`);
                     this.syncSingleMarkdown(file);
                 }
             })
@@ -104,7 +118,7 @@ export default class HexoSyncPlugin extends Plugin {
             /**
              * 同步开始
              */
-            this.logger.info(`Sync start: ${file.path}`);
+            this.logger.info(`[OBS2HEXO] Sync start: ${file.path}`);
 
             const adapter = this.app.vault.adapter;
 
@@ -120,34 +134,35 @@ export default class HexoSyncPlugin extends Plugin {
 
 //===============================fm流程
 
+            /**
+             *
+             */
             const {content} = this.processFrontMatter(file, rawContent);
+            this.logger.info(`[FM] FM successfully`);
 
-//====================语法清洗
+            //==============================附件处理
+
+            this.attachmentService.processAttachments(
+                file,
+                content,
+                paths.targetDir);
+            this.logger.info(`[AS] Attachment modified: ${file.path}`);
+
+//==============================语法清洗
 
             const transformedContent = this.markdownTransform.transform(file,content);
-
-
-//==============================附件处理
-
-            this.
-                attachmentService.
-                processAttachments(
-                    file,
-                    transformedContent.
-                        content,
-                    paths.
-                        targetDir);
+            this.logger.info(`[MD] MarkdownTransformed`);
 
 // ========================复制md文件
 
             this.writeToHexo(paths, transformedContent.content);
 
-            this.logger.info(`Sync success: ${file.name}`);
+            this.logger.info(`[OBS2HEXO] Sync success: ${file.name}`);
             new Notice('Hexo sync OK');
 
         } catch (error) {
             this.logger.error(
-                `Sync failed for ${file.path}: ${String(error)}`
+                `[OBS2HEXO] Sync failed for ${file.path}: ${String(error)}`
             );
             new Notice('Hexo sync failed');
         }
@@ -182,8 +197,8 @@ export default class HexoSyncPlugin extends Plugin {
 
         // 只同步 Obsidian Blog 目录
         if (!absoluteSrcPath.startsWith(this.OBSIDIAN_BLOG_DIR)) {
-            this.logger.info(
-                `Skip non-blog file: ${absoluteSrcPath}`
+            this.logger.debug(
+                `[OBS2HEXO] Skip non-blog file: ${absoluteSrcPath}`
             );
             return null;
         }
@@ -194,10 +209,10 @@ export default class HexoSyncPlugin extends Plugin {
         const fileNameWithoutExt = path.basename(file.name, '.md');
 
         /**
-         * 需要创建的同名目标文件夹
+         * 需要创建的同名目标附件文件夹
          */
         const targetDir = path.join(
-            this.HEXO_POST_DIR,
+            this.HEXO_SRC_IMG_DIR,
             fileNameWithoutExt
         );
 
@@ -228,17 +243,16 @@ export default class HexoSyncPlugin extends Plugin {
         /**
          * 解析并规范化Front Matter
          */
-        const result = this.frontMatter.ensureAndNormalize(file, rawContent);
+        const fmResult = this.frontMatter.ensureAndNormalize(file, rawContent);
 
         /**
-         * 将fm是否改变 写入日志
+         * 将规范化的fm写入原本的obs 的 md文档中
          */
-        this.logger.info(
-            result.changed
-                ? `Front Matter updated: ${file.name}`
-                : `Front Matter unchanged: ${file.name}`
-        );
-        return result;
+        if (fmResult.changed) {
+            this.app.vault.modify(file, fmResult.content);
+            this.logger.info(`[FM] write back to obsidian | ${file.path}`);
+        }
+        return fmResult;
 
     }
 
