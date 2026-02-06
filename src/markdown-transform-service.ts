@@ -21,7 +21,7 @@ export class MarkdownTransformService {
          */
         file: TFile,
         raw: string
-    ): MarkdownTransformResult {
+    ): {content:string,changed:boolean }{
         let content = raw;
         let changed = false;
 

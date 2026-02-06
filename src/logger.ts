@@ -11,17 +11,23 @@ export enum LogLevel {
 export class Logger {
   private logDir: string;
   /**
-   * todo 需要有按钮可以直接修改这个值
    * @private
    */
   private debugEnabled = true
 
-  constructor(logDir: string) {
+  constructor(logDir: string,debugEnabled=true) {
     this.logDir = logDir;
-
+    this.debugEnabled = debugEnabled;
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }
+  }
+  /**
+   * 运行时切换 debug 开关（给 SettingTab 用）
+   * question 为什么这个函数不用private之类的
+   */
+  setDebugEnabled(enabled: boolean) {
+    this.debugEnabled = enabled;
   }
 
   /**

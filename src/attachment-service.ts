@@ -17,7 +17,10 @@ export class AttachmentService {
 
     constructor(
         private logger?: Logger,
-        // fixme 路径后期需要可修改
+        /**
+         * fixme 路径需要可修改，根据获取信息自动得到，注意attachment是自己设置的附件文件夹名字
+         */
+
         obsAttachmentDir: string = 'D:\\Obsidian\\PluginTest\\Blog\\attachment' // 默认路径，可传入
     ) {
         this.OBS_ATTACHMENT_DIR = obsAttachmentDir;
