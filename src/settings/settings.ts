@@ -1,6 +1,5 @@
 /**
  * 设置的数据是存放在 data.json 里面的
- * todo 现在需要将其他地方的函数使用的数据都换成设置内部的数据或者由此加工形成的数据，去掉硬编码
  */
 export interface HexoSyncSettings {
     /**

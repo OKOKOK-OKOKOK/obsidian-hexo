@@ -1,4 +1,3 @@
-// src/frontmatter.ts
 import { TFile } from 'obsidian';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -25,7 +24,7 @@ export class FrontMatterService {
   /**
    * 主入口：确保 Front Matter 符合 Hexo 规范
    */
-  ensureAndNormalize(
+  public ensureAndNormalize(
     file: TFile,
     raw: string
   ): FrontMatterResult {
@@ -66,7 +65,7 @@ export class FrontMatterService {
   /**
    * 解析 Front Matter
    */
-  parse(md: string): { frontMatter: Record<string, any>; content: string } {
+  private parse(md: string): { frontMatter: Record<string, any>; content: string } {
 
     /**
      * 按行分割 Markdown 内容
@@ -163,7 +162,7 @@ export class FrontMatterService {
          */
         if (!key) continue;
         /**
-         * 每一轮循环都对currentkey进行赋值
+         * 每一轮循环都对current key进行赋值
          */
         currentKey = key;
         fm[key] = value === '' ? [] : value;
@@ -176,7 +175,7 @@ export class FrontMatterService {
   /**
    * Hexo 规范化
    */
-  normalize(file: TFile, fm: Record<string, any>): Record<string, any> {
+  private normalize(file: TFile, fm: Record<string, any>): Record<string, any> {
     const result = { ...fm };
 
     // title
@@ -226,7 +225,7 @@ export class FrontMatterService {
   /**
    * 序列化为 Markdown
    */
-  stringify(fm: Record<string, any>, content: string): string {
+  private stringify(fm: Record<string, any>, content: string): string {
     const lines: string[] = ['---'];
 
     for (const key of Object.keys(fm)) {

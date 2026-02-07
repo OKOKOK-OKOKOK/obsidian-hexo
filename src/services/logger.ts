@@ -13,21 +13,14 @@ export class Logger {
   /**
    * @private
    */
-  private debugEnabled = true
+  private debugEnabled : boolean;
 
-  constructor(logDir: string,debugEnabled=true) {
+  constructor(logDir: string,debugEnabled: boolean) {
     this.logDir = logDir;
     this.debugEnabled = debugEnabled;
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }
-  }
-  /**
-   * 运行时切换 debug 开关（给 SettingTab 用）
-   * question 为什么这个函数不用private之类的
-   */
-  setDebugEnabled(enabled: boolean) {
-    this.debugEnabled = enabled;
   }
 
   /**
@@ -73,21 +66,24 @@ export class Logger {
       }
     }
   }
+  public setDebugEnabled(debugEnabled: boolean) {
+    this.debugEnabled = debugEnabled;
+  }
 
-  debug(msg: string) {
+  public debug(msg: string) {
     if (!this.debugEnabled) return;
     this.write(LogLevel.DEBUG, msg);
   }
 
-  info(msg: string) {
+  public info(msg: string) {
     this.write(LogLevel.INFO, msg);
   }
 
-  warn(msg: string) {
+  public warn(msg: string) {
     this.write(LogLevel.WARN, msg);
   }
 
-  error(msg: string, err?: unknown) {
+  public error(msg: string, err?: unknown) {
     this.write(
         LogLevel.ERROR,
         err ? `${msg} | ${String(err)}` : msg

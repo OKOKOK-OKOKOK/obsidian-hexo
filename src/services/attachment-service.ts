@@ -2,6 +2,7 @@ import { TFile } from 'obsidian';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Logger } from './logger';
+import {ResolvedPaths} from "../utils/path-utils";
 
 
 export interface AttachmentProcessResult {
@@ -10,32 +11,22 @@ export interface AttachmentProcessResult {
 }
 
 export class AttachmentService {
-    /**
-     * Obsidian attachment 统一目录
-     */
-    private OBS_ATTACHMENT_DIR: string;
 
-    constructor(
-        private logger?: Logger,
-        /**
-         * fixme 路径需要可修改，根据获取信息自动得到，注意attachment是自己设置的附件文件夹名字
-         */
-
-        obsAttachmentDir: string = 'D:\\Obsidian\\PluginTest\\Blog\\attachment' // 默认路径，可传入
-    ) {
-        this.OBS_ATTACHMENT_DIR = obsAttachmentDir;
-    }
+    constructor(private logger?: Logger,) {}
 
     /**
      * 主入口：处理 Markdown 中引用的附件
      * @param file 当前 md 文件（仅用于日志）
      * @param content md 内容
-     * @param targetDir Hexo md 同名目标文件夹
+     * @param paths 从路径处理函数哪来的paths接口
      */
     processAttachments(
         file: TFile,
         content: string,
-        targetDir: string
+        paths:ResolvedPaths,
+        /**
+         * 关于地址的处理，直接传入paths这个三个变量，然后再拆分使用
+         */
     ): AttachmentProcessResult {
 
         let changed = false;
@@ -67,7 +58,7 @@ export class AttachmentService {
                 /**
                  * 源路径：Obsidian attachment
                  */
-                const srcPath = path.join(this.OBS_ATTACHMENT_DIR, imgName);
+                const srcPath = path.join(paths.targetAttachmentDir, imgName);
 
                 /**
                  * 目标路径：Hexo images/<mdName>/
@@ -77,14 +68,14 @@ export class AttachmentService {
                 /**
                  * 安全目标路径
                  */
-                const safeDestPath = path.join(targetDir, this.normalizeFileName(imgName));
+                const safeDestPath = path.join(paths.targetAttachmentDir, this.normalizeFileName(imgName));
                     //this.normalizeFileName(destPath);
 
                 // 创建目标目录
-                if (!fs.existsSync(targetDir)) {
-                    fs.mkdirSync(targetDir, { recursive: true });
+                if (!fs.existsSync(paths.targetAttachmentDir)) {
+                    fs.mkdirSync(paths.targetAttachmentDir, { recursive: true });
                     this.logger?.debug(
-                        `[AS] Created target directory: ${targetDir}`
+                        `[AS] Created target directory: ${paths.targetAttachmentDir}`
                     );
                 }
 
@@ -120,6 +111,9 @@ export class AttachmentService {
 
     /**
      * 将附件文件名转换为 Web / Hexo 安全格式
+     * 不应该移动到工具类里面
+     * 工具类里需要尽量避免出现出现带业务倾向的方法，
+     * 工具类里面应该是泛用多个 service 的方法
      */
     private normalizeFileName(fileName: string): string {
         return fileName

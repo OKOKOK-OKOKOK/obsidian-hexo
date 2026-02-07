@@ -10,10 +10,6 @@ npm install obsidian --save-dev
 
 # 功能
 
-NOTE / LEARN / RESEARCH
-
-结构写的太乱了，我都不敢测;
-
 --out
 编译多个文件并合并到一个输出的文件,能不能不适应esbuild
 
@@ -41,6 +37,13 @@ console.log('unloading plugin')
 3 它是否能脱离 Obsidian 单独测试？
 → services
 
+constructor(
+private logger?: Logger,
+private app:App,
+private settings:HexoSyncSettings,
+) {}
+如果里面有问号，说明接受没有实例的情况，之后的调用也要考虑没有实例的情况，也需要加问号，
+要么都有问号，要么都没有问号
 ```
 顺序替换，
 md
