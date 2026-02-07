@@ -11,14 +11,13 @@ export enum LogLevel {
 export class Logger {
   private logDir: string;
   /**
-   * todo 需要有按钮可以直接修改这个值
    * @private
    */
-  private debugEnabled = true
+  private debugEnabled : boolean;
 
-  constructor(logDir: string) {
+  constructor(logDir: string,debugEnabled: boolean) {
     this.logDir = logDir;
-
+    this.debugEnabled = debugEnabled;
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }
@@ -67,21 +66,24 @@ export class Logger {
       }
     }
   }
+  public setDebugEnabled(debugEnabled: boolean) {
+    this.debugEnabled = debugEnabled;
+  }
 
-  debug(msg: string) {
+  public debug(msg: string) {
     if (!this.debugEnabled) return;
     this.write(LogLevel.DEBUG, msg);
   }
 
-  info(msg: string) {
+  public info(msg: string) {
     this.write(LogLevel.INFO, msg);
   }
 
-  warn(msg: string) {
+  public warn(msg: string) {
     this.write(LogLevel.WARN, msg);
   }
 
-  error(msg: string, err?: unknown) {
+  public error(msg: string, err?: unknown) {
     this.write(
         LogLevel.ERROR,
         err ? `${msg} | ${String(err)}` : msg

@@ -1,108 +1,255 @@
-import {Plugin, Notice, TFile, FileSystemAdapter} from 'obsidian';
-import * as fs from 'fs';
+import {Plugin, Notice, TFile} from 'obsidian';
 import * as path from 'path';
-import {Logger} from './logger';
-import {FrontMatterService} from './frontmatter';
-import {MarkdownTransformService} from "./markdown-transform-service";
-import {AttachmentService} from "./attachment-service";
+import {Logger} from './services/logger';
+import {FrontMatterService} from './services/frontmatter-service';
+import {MarkdownTransformService} from "./services/markdown-transform-service";
+import {AttachmentService} from "./services/attachment-service";
+import {HexoSyncSettings, DEFAULT_SETTINGS} from './settings/settings';
+import {HexoSyncSettingTab} from './settings/settings-tab';
+import {SingleMarkdownSyncService} from "./core/hexo-sync-service";
+import {ResolvedPathsService} from "./utils/path-utils";
 
-interface ResolvedPaths {
-    /**
-     * 原来ob中的md文件绝对路径
-     */
-    absoluteSrcPath: string;
-    /**
-     * 附件最后要去的文件夹
-     */
-    targetDir: string;
-    /**
-     * md文件最后要去的路径
-     */
-    targetFilePath: string;
-}
-
+/**
+ * todo 添加日志
+ */
 export default class HexoSyncPlugin extends Plugin {
 
     /**
-     * Obsidian 中写博客的目录
+     * 单独的工具类
+     * @private
      */
-    private OBSIDIAN_BLOG_DIR = 'D:\\Obsidian\\PluginTest\\Blog';
+    private resolvedPathsService!: ResolvedPathsService;
 
     /**
-     * Hexo 的 _posts 目录
-     */
-    private HEXO_POST_DIR = 'F:\\Blog\\hexo-blog\\source\\_posts';
-
-    /**
-     * Hexo的source/images目录
-     * 存放插件文件夹
-     */
-    private  HEXO_SRC_IMG_DIR = 'F:\\Blog\\hexo-blog\\source\\images';
-
-    /**
-     * 声明logger
+     * 单独的logger
      */
     private logger!: Logger;
 
     /**
-     * 声明fm部分
+     * setting 设置相关
      */
-    private frontMatter!: FrontMatterService;
+    private syncSingleMarkdownService!: SingleMarkdownSyncService;
+
+    public settings!: HexoSyncSettings;
+
 
     /**
-     * 声明附件service部分
-     */
-    private attachmentService!: AttachmentService;
-
-    /**
-     * 清洗语法
+     * services 的声明
      * @private
      */
+    private frontMatter!: FrontMatterService;
+    private attachmentService!: AttachmentService;
     private markdownTransform!: MarkdownTransformService;
 
     async onload() {
 
+        await this.loadSettings();
+
         try {
-            const adapter = this.app.vault.adapter;
+            /**
+             * 两个基础组件首先初始化
+             */
+            this.initUtils();
+            this.initLogger();
 
-            if (adapter instanceof FileSystemAdapter) {
-                /**
-                 * 插件数据目录,实际上就是log文件位置
-                 */
-                const pluginDataDir = path.join(
-                    adapter.getBasePath(),
-                    '.obsidian',
-                    'plugins',
-                    'obsidian-hexo',
-                    'data'
-                );
+            /**
+             * 服务实例后初始化
+             */
+            this.initServices();
+            this.initCore()
+            this.initOtherServices();
 
-                this.logger = new Logger(pluginDataDir);
-                /**
-                 * 需要先初始化logger再初始化fm，不然报错
-                 */
-                this.frontMatter = new FrontMatterService(this.logger);
-
-                this.markdownTransform = new MarkdownTransformService(this.logger);
-
-// 在 onload 中初始化
-                this.attachmentService = new AttachmentService(this.logger, 'D:\\Obsidian\\PluginTest\\Blog\\attachment');
-
-                this.logger.info('Plugin loaded');
-            }
+            this.addSettingTab(new HexoSyncSettingTab(this.app, this));
+            this.registerCommands();
+            this.registerEvents();
 
             new Notice('Hexo Sync Plugin loaded');
+
         } catch (err) {
             console.error('Plugin load failed:', err);
         }
 
-        // 监听文件保存（modify）
+    }
+
+    /**
+     * 加载 data 里面保存的设置相关的数据
+     */
+    async loadSettings() {
+        this.settings = Object.assign(
+            {},
+            DEFAULT_SETTINGS,
+            await this.loadData()
+        );
+    }
+
+    /**
+     * 将当前设置里的数据保存到 data 里面去
+     */
+    async saveSettings() {
+        await this.saveData(this.settings);
+    }
+
+    /**
+     * 当设置变更时调用
+     *
+     * 职责：
+     * 1. 应用 logger 的运行时配置
+     * 2. 重建依赖 settings 的服务
+     *
+     * 不负责：
+     * - new Logger
+     * - 异常提示（由 SettingTab 负责）
+     */
+    refreshBySettings() {
+        if (!this.settings) return;
+
+        // 应用 Debug 开关（运行时可变）
+        if (this.logger) {
+            this.logger.setDebugEnabled(this.settings.enableDebugLog);
+            this.logger.info(
+                `[Settings] refreshed, debug=${this.settings.enableDebugLog}`
+            );
+        }
+
+        // 重建依赖 settings 的服务
+        this.initServices();
+
+    }
+
+
+    /**
+     * 初始化工具类，必须在logger之前，因为里面用到了路径工具
+     * @private
+     */
+    private initUtils(){
+        /**
+         * question 为什么setting明明是后挂依赖的，但是没有报错
+         */
+        this.resolvedPathsService = new ResolvedPathsService(this.app,this.settings)
+    }
+
+    /**
+     * 假如把iniLogger放进iniService里面，
+     * 功能上可以，但是语义上不好
+     */
+    /**
+     * 初始化 Logger（可随设置动态变）
+     */
+    private initLogger() {
+        /**
+         * logger文件的位置
+         */
+        const logDir = path.join(
+            /**
+             * 路径应该是D:\Obsidian\PluginTest\.obsidian\plugins\obsidian-hexo\data
+             */
+            this.resolvedPathsService.getVaultBasePath(),
+            '.obsidian',
+            'plugins' ,
+            'obsidian-hexo',
+            'data',
+        );
+        this.logger = new Logger(logDir, this.settings.enableDebugLog);
+    }
+
+    /**
+     * 初始化基础 Service
+     *
+     */
+    private initServices() {
+        this.frontMatter = new FrontMatterService(this.logger);
+        this.attachmentService = new AttachmentService(this.logger,);
+        this.markdownTransform = new MarkdownTransformService(this.logger);
+
+    }
+
+    /**
+     * 初始化 core 的服务
+     * 目前只有同步md的功能，以后还可以继续加功能
+     * @private
+     */
+    private initCore(){
+        this.syncSingleMarkdownService =new SingleMarkdownSyncService(
+            this.logger,
+            this.frontMatter,
+            this.attachmentService,
+            this.markdownTransform,
+            this.resolvedPathsService)
+    }
+
+    /**
+     * 注册图标
+     * @private
+     * question 没用的图标，以后再用
+     */
+    private initOtherServices() {
+        // Ribbon 图标
+        this.addRibbonIcon('refresh-cw', 'Hexo Sync: Sync current file', () => {
+            const file = this.app.workspace.getActiveFile();
+            if (file && file.extension === 'md') {
+                this.syncSingleMarkdownService.syncSingleMarkdown(file);
+            } else {
+                new Notice('No active markdown file');
+            }
+        });
+    }
+
+    /**
+     * 注册命令
+     * @private
+     * question 后续添加命令,如果没有 hotkey 应该怎么触发命令
+     */
+    private registerCommands() {
+
+        /** 手动同步当前文件 */
+        this.addCommand({
+            id: 'hexo-sync-current-file',
+            name: 'Hexo Sync: Sync current file',
+            editorCallback: () => {
+                const file = this.app.workspace.getActiveFile();
+                if (file && file.extension === 'md') {
+                    this.syncSingleMarkdownService.syncSingleMarkdown(file);
+                } else {
+                    new Notice('No active markdown file');
+                }
+            }
+        });
+
+        /** 打开 Hexo 根目录 */
+        this.addCommand({
+            id: 'hexo-open-root',
+            name: 'Hexo Sync: Open Hexo root directory',
+            callback: () => {
+                const hexoRoot = this.settings.hexoRootDir;
+                if (!hexoRoot) {
+                    new Notice('Hexo root directory not configured');
+                    return;
+                }
+                // 核心修改：用类型断言绕过TS检查
+                /**
+                 * learn 类型断言跳过检测
+                 */
+                (this.app as any).openWithDefaultApp(hexoRoot);
+            }
+        });
+    }
+
+    /**
+     * 注册事件，监听，防止内存泄漏；
+     * 当插件被卸载 / 禁用时，Obsidian 会自动取消通过registerEvent注册的所有监听，避免内存泄漏，
+     * 如果直接用this.app.vault.on而不手动off，插件卸载后监听仍会存在，导致内存泄漏；
+     * @private
+     */
+    private registerEvents() {
+
+        // 文件保存时自动同步
         this.registerEvent(
             this.app.vault.on('modify', (file) => {
-                if (file instanceof TFile && file.extension === 'md') {
-                    this.logger.info(`[OBS2HEXO] File modified: ${file.path}`);
-                    this.syncSingleMarkdown(file);
-                }
+                if (!(file instanceof TFile)) return;
+                if (file.extension !== 'md') return;
+
+                this.logger.info(`[OBS2HEXO] File modified: ${file.path}`);
+                this.syncSingleMarkdownService.syncSingleMarkdown(file);
             })
         );
 
@@ -110,167 +257,8 @@ export default class HexoSyncPlugin extends Plugin {
 
     /**
      * 同步 md 文件
+     * @deprecated 应该使用core里面的同步函数
+     * learn 学习更多类似注解
      */
-    private syncSingleMarkdown(file: TFile) {
-
-        try {
-            //===========================查找数据库，文件路径
-            /**
-             * 同步开始
-             */
-            this.logger.info(`[OBS2HEXO] Sync start: ${file.path}`);
-
-            const adapter = this.app.vault.adapter;
-
-            if (!(adapter instanceof FileSystemAdapter)) {
-                new Notice('Hexo Sync only supports local vaults');
-                return;
-            }
-            const paths = this.resolvePaths(file);
-
-            if (!paths) return;
-
-            const rawContent = fs.readFileSync(paths.absoluteSrcPath, 'utf8');
-
-//===============================fm流程
-
-            /**
-             *
-             */
-            const {content} = this.processFrontMatter(file, rawContent);
-            this.logger.info(`[FM] FM successfully`);
-
-            //==============================附件处理
-
-            this.attachmentService.processAttachments(
-                file,
-                content,
-                paths.targetDir);
-            this.logger.info(`[AS] Attachment modified: ${file.path}`);
-
-//==============================语法清洗
-
-            const transformedContent = this.markdownTransform.transform(file,content);
-            this.logger.info(`[MD] MarkdownTransformed`);
-
-// ========================复制md文件
-
-            this.writeToHexo(paths, transformedContent.content);
-
-            this.logger.info(`[OBS2HEXO] Sync success: ${file.name}`);
-            new Notice('Hexo sync OK');
-
-        } catch (error) {
-            this.logger.error(
-                `[OBS2HEXO] Sync failed for ${file.path}: ${String(error)}`
-            );
-            new Notice('Hexo sync failed');
-        }
-
-    }
-
-    /**
-     * 纯处理路径
-     * @param file
-     * @private
-     */
-    private resolvePaths(file: TFile): ResolvedPaths | null {
-        /**
-         * 同步开始
-         */
-
-        const adapter = this.app.vault.adapter;
-
-        if (!(adapter instanceof FileSystemAdapter)) {
-            new Notice('Hexo Sync only supports local vaults');
-            return null;
-        }
-        /**
-         * ob数据库的位置
-         */
-        const vaultBasePath = adapter.getBasePath();
-
-        /**
-         *  ob中md文件的绝对路径
-         */
-        const absoluteSrcPath = path.join(vaultBasePath, file.path);
-
-        // 只同步 Obsidian Blog 目录
-        if (!absoluteSrcPath.startsWith(this.OBSIDIAN_BLOG_DIR)) {
-            this.logger.debug(
-                `[OBS2HEXO] Skip non-blog file: ${absoluteSrcPath}`
-            );
-            return null;
-        }
-
-        /**
-         * 文件名字（无扩展名）
-         */
-        const fileNameWithoutExt = path.basename(file.name, '.md');
-
-        /**
-         * 需要创建的同名目标附件文件夹
-         */
-        const targetDir = path.join(
-            this.HEXO_SRC_IMG_DIR,
-            fileNameWithoutExt
-        );
-
-        /**
-         * md需要去的文件路径
-         */
-        const targetFilePath = path.join(
-            this.HEXO_POST_DIR,
-            file.name
-        );
-        return {
-            absoluteSrcPath,//ob md文件绝对路径
-            targetDir,//需要创建的同名文件夹绝对路径
-            targetFilePath//md文件最后要去的绝对路径
-        }
-    }
-
-    /**
-     * fm处理
-     * @param file
-     * @param rawContent
-     * @private
-     */
-    private processFrontMatter(
-        file: TFile,
-        rawContent: string
-    ): { content: string; changed: boolean } {
-        /**
-         * 解析并规范化Front Matter
-         */
-        const fmResult = this.frontMatter.ensureAndNormalize(file, rawContent);
-
-        /**
-         * 将规范化的fm写入原本的obs 的 md文档中
-         */
-        if (fmResult.changed) {
-            this.app.vault.modify(file, fmResult.content);
-            this.logger.info(`[FM] write back to obsidian | ${file.path}`);
-        }
-        return fmResult;
-
-    }
-
-    /**
-     * 写入md
-     * @param paths 写入md的路径
-     * @param content 修改后的内容
-     * @private
-     */
-    private writeToHexo(
-        paths: ResolvedPaths,
-        content: string
-    ) {
-        fs.writeFileSync(
-            paths.targetFilePath,
-            content,
-            'utf-8'
-        );
-    }
 
 }

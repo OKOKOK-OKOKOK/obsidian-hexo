@@ -10,6 +10,40 @@ npm install obsidian --save-dev
 
 # 功能
 
+--out
+编译多个文件并合并到一个输出的文件,能不能不适应esbuild
+
+写代码最好还是在右侧一直开着结构示意图，不然越写越迷糊
+
+当插件被卸载 / 禁用时，Obsidian 会自动取消通过registerEvent注册的所有监听，避免内存泄漏，
+如果直接用this.app.vault.on而不手动off，插件卸载后监听仍会存在，导致内存泄漏
+
+我现在的代码是service文件里面有一大堆用于service逻辑的多个方法和函数，但是没有完整的流程函数
+在main里面为每一个service串起来各个逻辑函数写了一个完整流程的方法，
+是应该在main里面写还是应该在service里面写，感觉main里面的文件越来越多了
+
+async onunload() {
+console.log('unloading plugin')
+}
+
+是否拆函数：
+判断一个函数该放哪，问 3 个问题
+1 它是否依赖 Obsidian 生命周期？
+→ main.ts
+
+2 它是否只是展示 / 表单 / UI？
+→ SettingTab
+
+3 它是否能脱离 Obsidian 单独测试？
+→ services
+
+constructor(
+private logger?: Logger,
+private app:App,
+private settings:HexoSyncSettings,
+) {}
+如果里面有问号，说明接受没有实例的情况，之后的调用也要考虑没有实例的情况，也需要加问号，
+要么都有问号，要么都没有问号
 ```
 顺序替换，
 md
