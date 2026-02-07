@@ -8,6 +8,10 @@ export interface ResolvedPaths {
      */
     absoluteSrcPath: string;
     /**
+     * 原本ob中的附件文件夹绝对路径
+     */
+    absoluteAttachmentPath: string;
+    /**
      * 附件最后要去的文件夹
      */
     targetAttachmentDir: string;
@@ -57,22 +61,6 @@ export class ResolvedPathsService {
          */
         const absoluteSrcPath = path.join(vaultBasePath, file.path);
 
-        // 只同步 Obsidian Blog 目录
-        /**
-         * learn starts with windows路径可能有bug,windows路径容易出bug
-         */
-        // 如果是 blogDir 内的文件：
-        // relative 不以 '..' 开头，也不是绝对路径
-        /**
-         * todo 先关了再试试
-         */
-        // const relative = path.relative(this.settings.obsidianBlogDir, absoluteSrcPath);
-        // if (relative.startsWith('..') || path.isAbsolute(relative)) {
-        //     throw new Error(
-        //         `[OBS2HEXO] Skip non-blog file: ${absoluteSrcPath}`
-        //     );
-        // }
-
         /**
          * Hexo root
          *
@@ -101,6 +89,15 @@ export class ResolvedPathsService {
          */
         const fileNameWithoutExt = path.basename(file.name, '.md');
 
+        /**
+         * Obsidian 中附件目录绝对路径
+         * 规则：附件文件夹与 md 文件同级
+         */
+        const absoluteAttachmentPath = path.join(
+            vaultBasePath,
+            path.dirname(file.path),
+            this.settings.obsidianAttachmentDirName
+        );
         /** 该 md 对应的附件目录 */
         const targetAttachmentDir = path.join(
             hexoImageRootDir,
@@ -113,8 +110,10 @@ export class ResolvedPathsService {
             file.name
         );
 
+
         return {
             absoluteSrcPath,//ob md文件绝对路径
+            absoluteAttachmentPath,//ob 附件文件夹的绝对路径
             targetAttachmentDir,//需要创建的同名文件夹绝对路径
             targetMarkdownFilePath//md文件最后要去的绝对路径
         }
