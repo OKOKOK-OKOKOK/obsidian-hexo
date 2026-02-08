@@ -10,6 +10,8 @@ import {SingleMarkdownSyncService} from "./core/hexo-sync-service";
 import {ResolvedPathsService} from "./utils/path-utils";
 import {HexoRunnerService} from "./services/hexo-runner";
 import {ConfirmModal} from "./ui/confirmModal";
+import {HexoContentService} from "./services/hexocontent-service";
+import {FullMarkdownSyncService} from "./core/fullmarkdown-sync-service";
 
 /**
  * todo 添加日志
@@ -25,15 +27,23 @@ export default class HexoSyncPlugin extends Plugin {
     private resolvedPathsService!: ResolvedPathsService;
 
     /**
-     * 单独的logger
+     * 单独的logger，日志实例
      */
     private logger!: Logger;
 
     /**
-     * setting 设置相关
+     * 同步单个md文档
      */
     private syncSingleMarkdownService!: SingleMarkdownSyncService;
 
+    /**
+     * 批量同步处理md文档
+     */
+    private fullMarkdownSyncService!:FullMarkdownSyncService;
+
+    /**
+     * setting 设置相关
+     */
     public settings!: HexoSyncSettings;
 
     /**
@@ -44,6 +54,7 @@ export default class HexoSyncPlugin extends Plugin {
     private attachmentService!: AttachmentService;
     private markdownTransform!: MarkdownTransformService;
     private hexoRunnerService!: HexoRunnerService;
+    private hexoContentService!:HexoContentService;
 
     async onload() {
 
@@ -164,6 +175,7 @@ export default class HexoSyncPlugin extends Plugin {
         this.attachmentService = new AttachmentService(this.logger,);
         this.markdownTransform = new MarkdownTransformService(this.logger);
         this.hexoRunnerService=new HexoRunnerService(this.settings.hexoRootDir,this.logger);
+        this.hexoContentService=new HexoContentService(this.settings.hexoRootDir,this.logger);
 
     }
 
@@ -179,7 +191,14 @@ export default class HexoSyncPlugin extends Plugin {
             this.attachmentService,
             this.markdownTransform,
             this.resolvedPathsService)
+
+        this.fullMarkdownSyncService=new FullMarkdownSyncService(
+            this.app,
+            this.syncSingleMarkdownService,
+            this.logger
+        )
     }
+
 
     /**
      * 注册图标
@@ -266,18 +285,6 @@ export default class HexoSyncPlugin extends Plugin {
     private registerEvents() {
 
         this.registerAutoSyncOnModify();
-
-        // // 文件保存时自动同步
-        // this.registerEvent(
-        //     this.app.vault.on('modify', (file) => {
-        //         if (!(file instanceof TFile)) return;
-        //         if (file.extension !== 'md') return;
-        //
-        //         this.logger.info(`[OBS2HEXO] File modified: ${file.path}`);
-        //         this.syncSingleMarkdownService.syncSingleMarkdown(file);
-        //     })
-        // );
-
     }
 
     private registerAutoSyncOnModify() {
@@ -366,6 +373,25 @@ export default class HexoSyncPlugin extends Plugin {
     public async confirm(title: string, message: string): Promise<boolean> {
         const modal = new ConfirmModal(this.app, title, message);
         return modal.openAndWait();
+    }
+
+    /**
+     * 从 Obsidian 全量重建 Hexo 内容
+     * 1. 备份 Hexo source 目录
+     * 2. 清空 _posts / images
+     * 3. 重新同步 Obsidian 内容
+     */
+    public async rebuildHexoFromObsidian() {
+        this.logger.info('[Hexo] Full rebuild started');
+
+        await this.hexoContentService.backupHexoSource();
+        await this.hexoContentService.clearHexoSource();
+        /**
+         * 这里是要对所有md文档进行批量转换
+         */
+        await this.fullMarkdownSyncService.syncAllFromObsidian();
+
+        this.logger.info('[Hexo] Full rebuild finished');
     }
 
 

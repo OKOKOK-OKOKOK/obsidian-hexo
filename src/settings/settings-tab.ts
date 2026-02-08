@@ -168,6 +168,7 @@ export class HexoSyncSettingTab extends PluginSettingTab {
                     })
             );
 
+
         /* ===========================
          * 日志设置
          * =========================== */
@@ -273,6 +274,40 @@ export class HexoSyncSettingTab extends PluginSettingTab {
             });
 
         /**
+         * 部署博客
+         * 调用 hexo deploy
+         */
+        new Setting(containerEl)
+            .setName('生成并部署博客')
+            .setDesc(
+                '将按顺序执行：\n' +
+                '1. hexo clean\n' +
+                '2. hexo generate\n' +
+                '3. hexo deploy\n\n' +
+                '会清空 public 目录，但不会影响 Markdown'
+            )
+            .addButton(button =>
+                button
+                    .setButtonText('部署')
+                    //.setWarning()
+                    .onClick(async () => {
+                        // 二次确认
+                        const confirmed = await this.plugin.confirm(
+                            '确认部署博客？',
+                            '这将执行 hexo clean + generate + deploy'
+                        );
+                        if (!confirmed) return;
+
+                        try {
+                            await this.plugin.deployHexo();
+                            new Notice('Hexo 部署完成');
+                        } catch {
+                            new Notice('Hexo 部署失败，请查看日志');
+                        }
+                    })
+            );
+
+        /**
          * 清理hexo生成文件
          * 调用hexo clean
          */
@@ -308,38 +343,39 @@ export class HexoSyncSettingTab extends PluginSettingTab {
 
 
         /**
-         * 部署博客
-         * 调用 hexo deploy
+         * 清理hexo目录，再次全部重新同步ob中的文档和附件
          */
         new Setting(containerEl)
-            .setName('生成并部署博客')
+            .setName('全量重建 Hexo 内容')
             .setDesc(
-                '将按顺序执行：\n' +
-                '1. hexo clean\n' +
-                '2. hexo generate\n' +
-                '3. hexo deploy\n\n' +
-                '会清空 public 目录，但不会影响 Markdown'
+                '将执行以下操作：\n' +
+                '1. 备份 source/_posts 和 source/images\n' +
+                '2. 删除上述目录下的所有内容\n' +
+                '3. 从 Obsidian 重新同步所有 Markdown 和附件\n\n' +
+                '危险操作，请确保 Obsidian 内容是完整的'
             )
             .addButton(button =>
                 button
-                    .setButtonText('部署')
+                    .setButtonText('全量重建')
                     .setWarning()
                     .onClick(async () => {
-                        // 二次确认
                         const confirmed = await this.plugin.confirm(
-                            '确认部署博客？',
-                            '这将执行 hexo clean + generate + deploy'
+                            '确认全量重建 Hexo 内容？',
+                            'Hexo 中的 Markdown 和图片将被全部删除并重新生成'
                         );
                         if (!confirmed) return;
 
                         try {
-                            await this.plugin.deployHexo();
-                            new Notice('Hexo 部署完成');
-                        } catch {
-                            new Notice('Hexo 部署失败，请查看日志');
+                            await this.plugin.rebuildHexoFromObsidian();
+                            new Notice('Hexo 内容已全量重建');
+                        } catch (e) {
+                            new Notice('全量重建失败，请查看日志');
                         }
                     })
             );
+
+
+
     }
 
     /**
