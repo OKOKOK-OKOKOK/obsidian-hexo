@@ -1,119 +1,95 @@
-# 环境
+# Obsidian Hexo Sync
 
-npm config set registry https://registry.npmmirror.com
+一个用于 将 Obsidian 中的 Markdown 笔记及其附件，同步到 Hexo 博客项目 的 Obsidian 插件。
 
-npm install --save-dev @types/node
-
-npm install obsidian --save-dev
-
---out
-编译多个文件并合并到一个输出的文件,能不能不适应esbuild需要esbuild来帮助生成单个mainjs文件
+插件只负责 内容与资源同步，以及hexo命令的调用，
+HTML 的生成、清理与发布完全由 Hexo 本身负责。
 
 # 功能
 
-README文件完善，
+1.同步 Obsidian 中的 Markdown 文件到 Hexo _posts 目录
 
---out
-编译多个文件并合并到一个输出的文件,能不能不适应esbuild
+2.自动处理并复制 Markdown 中引用的附件（如图片），不会影响obsidian中的文件
 
-添加debug日志方便查错
+3.对 Markdown 内容进行必要的路径与语法调整
 
-防御性意外；
+4.附件文件名自动适配 Hexo / Fluid 主题规则
 
+5.提供调试日志，方便排查同步问题
 
+6.对hexo的命令打包到obsidian插件设置页面中
 
+7.当尝试使用插件进行清除hexo时会自动备份一次避免意外
 
-关于删除与生成
-本插件只负责将 Obsidian 中的 Markdown 与附件同步到 Hexo 项目中。
-HTML 的生成与清理由 Hexo 自身完成。
+# 安装
 
-当插件被卸载 / 禁用时，Obsidian 会自动取消通过registerEvent注册的所有监听，避免内存泄漏，
-如果直接用this.app.vault.on而不手动off，插件卸载后监听仍会存在，导致内存泄漏
+克隆本仓库
 
-async onunload() {
-console.log('unloading plugin')
-}
-
-是否拆函数：
-判断一个函数该放哪，问 3 个问题
-1 它是否依赖 Obsidian 生命周期？
-→ main.ts
-
-2 它是否只是展示 / 表单 / UI？
-→ SettingTab
-
-3 它是否能脱离 Obsidian 单独测试？
-→ services
-
-constructor(
-private logger?: Logger,
-private app:App,
-private settings:HexoSyncSettings,
-) {}
-如果里面有问号，说明接受没有实例的情况，之后的调用也要考虑没有实例的情况，也需要加问号，
-要么都有问号，要么都没有问号
+安装依赖
 ```
-顺序替换，
-md
-md附件处理，
-    原本清洗语法可以减少处理附件的代码逻辑量，但是顺序没法改变，
-md语法清洗，
-md回写
-
-AttachmentService
-    现实世界（磁盘）
-    不关心 Hexo
-MarkdownTransform
-    纯文本
-    不碰文件系统
-SyncPipeline
-    决定顺序
-    保证信息不丢
-
-任何会改变“文件名 / 路径 / 标识符”的操作，
-都必须发生在“最后一次使用原始信息之后”。
-
-```
-使用hexo和fluid的话，附件名字中不能带有空格，可以有中文，
-经过处理了，原md文档可以随便写，处理后空格会被替换成下划线
-
-//manifest有可能需要同步到ob里面，或者人为修改main为mainjs
-
-# 代码
-```
-打日志
-感觉奇怪的地方用warn
-感觉不可能出错的地方用error
+npm install
 ```
 
+构建插件
 ```
-在 JavaScript / TypeScript 里，
-“访问一个不存在的对象属性”是完全合法的，结果是 undefined。
-```
-
-```
-在 JS 中：
-value == null
-等价于：
-value === null || value === undefined
+npm run build
 ```
 
+将以下文件复制到你的 Obsidian 插件目录：
 ```
-Obsidian 插件不是 Node 项目，它不会做模块解析
-main.js 里有 require('./logger')，
-但 Obsidian 只保证能加载 main.js 本身，
-不会自动加载同目录下的其他 JS 模块，
-必须全部打包成一个mainjs
-"build": "node esbuild.config.mjs",
+.obsidian/plugins/obsidian-hexo/
+├─ main.js
+└─ manifest.json
 ```
 
-```
-//构造函数
-        constructor(private logger?: Logger) {}
+在 Obsidian 中启用插件
+
+# 构建说明
+
+Obsidian 插件 只会加载一个入口文件 main.js，
+不会自动解析或加载其他 JavaScript 文件。
+
+因此，本插件在构建阶段会：
+
+将所有 TypeScript 代码
+
+打包为 单个 main.js 文件
+
+构建使用 esbuild，这是 Obsidian 插件开发中最常见、最稳定的方案之一。
+
+# 🖼附件与文件名规则
+
+在 Hexo + Fluid 主题环境中：
+
+附件文件名 不能包含空格
+
+可以包含中文
+
+插件会自动处理上述问题：
+
+Obsidian 中可自由命名文件
+
+同步到 Hexo 时，将空格替换为下划线 _
+
+# 调试与日志
+
+正常流程会输出 info warn 日志，报错有error
+
+设置界面可打开debug日志开关，方便查看详细信息
+
+# 卸载与安全性
+
+直接删了就行
+
+# 注意事项
+
+在设置界面打开hexo本地服务器之后记得关，不然一直占用端口4000
 
 
-//用‘？’避免undefined
-        this.logger?.log(
-            `[INFO] Markdown transformed (obsidian → hexo): ${file.name}`
-        );
-```
+# License
+
+ISC
+
+# 其他
+
+因为是第一次边学编写，所以里面可能还残留了一些拿来当笔记用的注释
