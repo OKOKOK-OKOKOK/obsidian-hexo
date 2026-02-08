@@ -10,8 +10,34 @@ npm install obsidian --save-dev
 
 # 功能
 
+删除文件应该怎么处理？
+模仿hexo，全部删除，然后重新生成，
+
+README文件完善，
+
 --out
 编译多个文件并合并到一个输出的文件,能不能不适应esbuild
+
+添加debug日志方便查错
+
+防御性意外；
+
+显式显示hexo命令菜单，
+命令
+generate
+clean
+new
+delete
+deploy
+
+clean-generate-deploy绑定
+
+
+
+
+关于删除与生成
+本插件只负责将 Obsidian 中的 Markdown 与附件同步到 Hexo 项目中。
+HTML 的生成与清理由 Hexo 自身完成。z
 
 写代码最好还是在右侧一直开着结构示意图，不然越写越迷糊
 

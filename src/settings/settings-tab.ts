@@ -230,6 +230,7 @@ export class HexoSyncSettingTab extends PluginSettingTab {
      * @param dir
      * @param desc
      * @private
+     * todo 这个函数还没用起来
      */
     private validateDirectory(
         dir: string,
