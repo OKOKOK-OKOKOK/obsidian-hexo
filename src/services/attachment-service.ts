@@ -29,7 +29,6 @@ export class AttachmentService {
          */
     ): AttachmentProcessResult {
 
-
         /**
          * 检验paths.targetAttachmentDir是否存在
          */
@@ -41,7 +40,6 @@ export class AttachmentService {
         let changed = false;
         let newContent = content;
 
-
         /**
          * 同时匹配：
          * 1. ![](xxx)
@@ -49,77 +47,6 @@ export class AttachmentService {
          */
         const imageRegex =
             /!\[\[(.+?)]]|!\[[^\]]*]\((.+?)\)/g;
-
-        // newContent = newContent.replace(
-        //     imageRegex,
-        //     (_, obsidianPath, markdownPath) => {
-        //
-        //         /**
-        //          * 原始路径（Obsidian 优先）
-        //          */
-        //         const rawPath = obsidianPath ?? markdownPath;
-        //         if (!rawPath) return _;
-        //
-        //         /**
-        //          * 真实文件名（此阶段不做任何清洗）
-        //          */
-        //         const imgName = path.basename(rawPath);
-        //
-        //         /**
-        //          * 源路径：Obsidian attachment
-        //          */
-        //         const srcPath = path.join(paths.targetAttachmentDir, imgName);
-        //
-        //         /**
-        //          * 目标路径：Hexo images/<mdName>/
-        //          */
-        //         //const destPath = path.join(targetDir, imgName);
-        //
-        //         /**
-        //          * 安全目标路径
-        //          */
-        //         const safeDestPath = path.join(paths.targetAttachmentDir, this.normalizeFileName(imgName));
-        //             //this.normalizeFileName(destPath);
-        //
-        //
-        //         /**
-        //          * 创建目标目录
-        //          * 如果有还需要另外打日志
-        //           */
-        //
-        //         if (!fs.existsSync(paths.targetAttachmentDir)) {
-        //             fs.mkdirSync(paths.targetAttachmentDir, { recursive: true });
-        //             this.logger?.debug(
-        //                 `[AS] Created target directory: ${paths.targetAttachmentDir}`
-        //             );
-        //         }
-        //
-        //         // 附件不存在：保持原样（非常重要）
-        //         if (!fs.existsSync(srcPath)) {
-        //             this.logger?.debug(
-        //                 `[AS] Attachment not found: ${srcPath}`
-        //             );
-        //             return _;
-        //         }
-        //
-        //         // 幂等复制
-        //         if (!fs.existsSync(safeDestPath)) {
-        //             fs.copyFileSync(srcPath, safeDestPath);
-        //             this.logger?.debug(
-        //                 `[AS] Copied attachment ${imgName}`
-        //             );
-        //         }
-        //
-        //         changed = true;
-        //
-        //         /**
-        //          * 注意：
-        //          * 此时只负责改成 Hexo 路径
-        //          * 不关心格式是否最终规范
-        //          */
-        //         return `![](/images/${file.basename}/${imgName})`;
-        //     }
-        // );
 
         newContent = newContent.replace(
             imageRegex,
@@ -174,7 +101,6 @@ export class AttachmentService {
         this.logger?.debug(
             `[AS] Start processing attachments for: ${file.path}`
         );
-
 
         /**
          * 基础校验（Fail Fast）
@@ -255,9 +181,4 @@ export class AttachmentService {
             replacement: `![](/images/${file.basename}/${safeName})`
         };
     }
-
-
-
-
-
 }

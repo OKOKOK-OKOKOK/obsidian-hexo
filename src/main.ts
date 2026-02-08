@@ -8,9 +8,13 @@ import {HexoSyncSettings, DEFAULT_SETTINGS} from './settings/settings';
 import {HexoSyncSettingTab} from './settings/settings-tab';
 import {SingleMarkdownSyncService} from "./core/hexo-sync-service";
 import {ResolvedPathsService} from "./utils/path-utils";
+import {HexoRunnerService} from "./services/hexo-runner";
+import {ConfirmModal} from "./ui/confirmModal";
 
 /**
  * todo 添加日志
+ * todo 使用 use case对 main 进行重构
+ * todo hexo 的部分， 结构不太对，需要再重构
  */
 export default class HexoSyncPlugin extends Plugin {
 
@@ -32,7 +36,6 @@ export default class HexoSyncPlugin extends Plugin {
 
     public settings!: HexoSyncSettings;
 
-
     /**
      * services 的声明
      * @private
@@ -40,6 +43,7 @@ export default class HexoSyncPlugin extends Plugin {
     private frontMatter!: FrontMatterService;
     private attachmentService!: AttachmentService;
     private markdownTransform!: MarkdownTransformService;
+    private hexoRunnerService!: HexoRunnerService;
 
     async onload() {
 
@@ -47,7 +51,7 @@ export default class HexoSyncPlugin extends Plugin {
 
         try {
             /**
-             * 两个基础组件首先初始化
+             * 两个基础组件先初始化
              */
             this.initUtils();
             this.initLogger();
@@ -68,7 +72,6 @@ export default class HexoSyncPlugin extends Plugin {
         } catch (err) {
             console.error('Plugin load failed:', err);
         }
-
     }
 
     /**
@@ -160,6 +163,7 @@ export default class HexoSyncPlugin extends Plugin {
         this.frontMatter = new FrontMatterService(this.logger);
         this.attachmentService = new AttachmentService(this.logger,);
         this.markdownTransform = new MarkdownTransformService(this.logger);
+        this.hexoRunnerService=new HexoRunnerService(this.settings.hexoRootDir,this.logger);
 
     }
 
@@ -197,7 +201,7 @@ export default class HexoSyncPlugin extends Plugin {
     /**
      * 注册命令
      * @private
-     * question 后续添加命令,如果没有 hotkey 应该怎么触发命令
+     * question 不设置hotkey的应该是可以在命令界面查看到，但是不会分配默认热键？
      */
     private registerCommands() {
 
@@ -232,6 +236,25 @@ export default class HexoSyncPlugin extends Plugin {
                 (this.app as any).openWithDefaultApp(hexoRoot);
             }
         });
+        /**
+         * 打开本地服务器的命令
+         */
+        this.addCommand({
+            id: 'hexo-start-server',
+            name: 'Hexo: Start local server',
+            callback: () => {
+                this.startHexoServer();
+            }
+        });
+
+        this.addCommand({
+            id: 'hexo-stop-server',
+            name: 'Hexo: Stop local server',
+            callback: () => {
+                this.stopHexoServer();
+            }
+        });
+
     }
 
     /**
@@ -242,23 +265,102 @@ export default class HexoSyncPlugin extends Plugin {
      */
     private registerEvents() {
 
-        // 文件保存时自动同步
-        this.registerEvent(
-            this.app.vault.on('modify', (file) => {
-                if (!(file instanceof TFile)) return;
-                if (file.extension !== 'md') return;
+        this.registerAutoSyncOnModify();
 
-                this.logger.info(`[OBS2HEXO] File modified: ${file.path}`);
-                this.syncSingleMarkdownService.syncSingleMarkdown(file);
-            })
-        );
+        // // 文件保存时自动同步
+        // this.registerEvent(
+        //     this.app.vault.on('modify', (file) => {
+        //         if (!(file instanceof TFile)) return;
+        //         if (file.extension !== 'md') return;
+        //
+        //         this.logger.info(`[OBS2HEXO] File modified: ${file.path}`);
+        //         this.syncSingleMarkdownService.syncSingleMarkdown(file);
+        //     })
+        // );
 
     }
 
+    private registerAutoSyncOnModify() {
+        this.registerEvent(
+            this.app.vault.on('modify', (file) => {
+                if (!this.isMarkdownFile(file)) return;
+                this.handleMarkdownModified(file);
+            })
+        );
+    }
+
+    private isMarkdownFile(file: unknown): file is TFile {
+        return file instanceof TFile && file.extension === 'md';
+    }
+
+    private handleMarkdownModified(file: TFile) {
+        this.logger.info(`[OBS2HEXO] File modified: ${file.path}`);
+        this.syncSingleMarkdownService.syncSingleMarkdown(file);
+    }
+
     /**
-     * 同步 md 文件
-     * @deprecated 应该使用core里面的同步函数
-     * learn 学习更多类似注解
+     * 部署 Hexo 博客
+     * clean -> generate -> deploy
      */
+    public async deployHexo() {
+        this.logger.info('[Hexo] Deploy started');
+
+        await this.hexoRunnerService.run('hexo clean');
+        await this.hexoRunnerService.run('hexo generate');
+        await this.hexoRunnerService.run('hexo deploy');
+
+        this.logger.info('[Hexo] Deploy finished');
+    }
+
+    /**
+     * 启动 Hexo 本地预览服务器
+     * 等同于执行：hexo server
+     *
+     * 这是一个长期运行的进程
+     */
+    public async startHexoServer() {
+        this.logger.info('[Hexo] Server starting');
+
+        await this.hexoRunnerService.runServer();
+
+        this.logger.info('[Hexo] Server started');
+    }
+
+    /**
+     * 停止 Hexo 本地预览服务器
+     * 当前版本可能需要用户手动关闭
+     * todo 怎么个手动关闭法啊？
+     */
+    public async stopHexoServer() {
+        this.logger.info('[Hexo] Server stop requested');
+
+        await this.hexoRunnerService.stopServer?.();
+
+        this.logger.info('[Hexo] Server stopped');
+    }
+
+    /**
+     * 清理 Hexo 生成文件
+     * 等同于执行：hexo clean
+     */
+    public async cleanHexo() {
+        this.logger.info('[Hexo] Clean started');
+
+        await this.hexoRunnerService.run('hexo clean');
+
+        this.logger.info('[Hexo] Clean finished');
+    }
+
+    /**
+     * confirm 用于调用二次确认和取消的ui界面
+     * @param title
+     * @param message
+     */
+    public async confirm(title: string, message: string): Promise<boolean> {
+        const modal = new ConfirmModal(this.app, title, message);
+        return modal.openAndWait();
+    }
+
+
 
 }
