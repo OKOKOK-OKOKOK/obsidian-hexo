@@ -50,9 +50,12 @@ export class SingleMarkdownSyncService {
                 private attachmentService: AttachmentService,
                 private markdownTransform: MarkdownTransformService,
                 private resolvedPathsService: ResolvedPathsService,
-    ) {
-    }
+    ) {}
 
+    /**
+     * 同步 md attachment
+     * @param file
+     */
     syncSingleMarkdown(file: TFile): void {
         try {
             //===========================查找数据库，文件路径

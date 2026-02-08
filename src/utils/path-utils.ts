@@ -51,15 +51,18 @@ export class ResolvedPathsService {
     ) {}
 
     public resolvedPaths(file:TFile): ResolvedPaths|null {
+
+        const resolvedPaths = {
+            absoluteSrcPath: '...',//ob md文件绝对路径
+            absoluteAttachmentPath: '...',//ob 附件文件夹的绝对路径
+            targetAttachmentDir: '...',//需要创建的同名文件夹绝对路径
+            targetMarkdownFilePath: '...'//md文件最后要去的绝对路径
+        };
+
         /**
          * 当前ob数据库的位置
          */
         const vaultBasePath = this.getVaultBasePath();
-
-        /**
-         *  ob中md文件的绝对路径
-         */
-        const absoluteSrcPath = path.join(vaultBasePath, file.path);
 
         /**
          * Hexo root
@@ -84,41 +87,41 @@ export class ResolvedPathsService {
             'source',
             'images'
         );
+
         /**
          * 文件名字（无扩展名）用于创建同名的附件文件夹
          */
         const fileNameWithoutExt = path.basename(file.name, '.md');
 
         /**
+         *  ob中md文件的绝对路径
+         */
+        resolvedPaths.absoluteSrcPath = path.join(vaultBasePath, file.path);
+
+        /**
          * Obsidian 中附件目录绝对路径
          * 规则：附件文件夹与 md 文件同级
          */
-        const absoluteAttachmentPath = path.join(
+        resolvedPaths.absoluteAttachmentPath = path.join(
             vaultBasePath,
             path.dirname(file.path),
             this.settings.obsidianAttachmentDirName
         );
         /** 该 md 对应的附件目录 */
-        const targetAttachmentDir = path.join(
+        resolvedPaths.targetAttachmentDir = path.join(
             hexoImageRootDir,
             fileNameWithoutExt
         );
 
         /** 目标 md 文件路径 */
-        const targetMarkdownFilePath = path.join(
+        resolvedPaths.targetMarkdownFilePath = path.join(
             hexoPostDir,
             file.name
         );
 
+        return resolvedPaths;
 
-        return {
-            absoluteSrcPath,//ob md文件绝对路径
-            absoluteAttachmentPath,//ob 附件文件夹的绝对路径
-            targetAttachmentDir,//需要创建的同名文件夹绝对路径
-            targetMarkdownFilePath//md文件最后要去的绝对路径
-        }
     }
-
 
     public getVaultBasePath(): string {
         const adapter = this.app.vault.adapter;
