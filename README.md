@@ -57,7 +57,7 @@ Obsidian 插件 只会加载一个入口文件 main.js，
 
 构建使用 esbuild，这是 Obsidian 插件开发中最常见、最稳定的方案之一。
 
-# 🖼附件与文件名规则
+# 附件与文件名规则
 
 在 Hexo + Fluid 主题环境中：
 
