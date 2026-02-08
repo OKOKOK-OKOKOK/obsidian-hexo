@@ -6,12 +6,10 @@ npm install --save-dev @types/node
 
 npm install obsidian --save-dev
 
-需要esbuild来帮助生成单个mainjs文件
+--out
+编译多个文件并合并到一个输出的文件,能不能不适应esbuild需要esbuild来帮助生成单个mainjs文件
 
 # 功能
-
-删除文件应该怎么处理？
-模仿hexo，全部删除，然后重新生成，
 
 README文件完善，
 
@@ -22,31 +20,15 @@ README文件完善，
 
 防御性意外；
 
-显式显示hexo命令菜单，
-命令
-generate
-clean
-new
-delete
-deploy
-
-clean-generate-deploy绑定
-
 
 
 
 关于删除与生成
 本插件只负责将 Obsidian 中的 Markdown 与附件同步到 Hexo 项目中。
-HTML 的生成与清理由 Hexo 自身完成。z
-
-写代码最好还是在右侧一直开着结构示意图，不然越写越迷糊
+HTML 的生成与清理由 Hexo 自身完成。
 
 当插件被卸载 / 禁用时，Obsidian 会自动取消通过registerEvent注册的所有监听，避免内存泄漏，
 如果直接用this.app.vault.on而不手动off，插件卸载后监听仍会存在，导致内存泄漏
-
-我现在的代码是service文件里面有一大堆用于service逻辑的多个方法和函数，但是没有完整的流程函数
-在main里面为每一个service串起来各个逻辑函数写了一个完整流程的方法，
-是应该在main里面写还是应该在service里面写，感觉main里面的文件越来越多了
 
 async onunload() {
 console.log('unloading plugin')
@@ -92,44 +74,10 @@ SyncPipeline
 都必须发生在“最后一次使用原始信息之后”。
 
 ```
-使用 hexo new 会让 fluid 会自动创建同名文件夹，现在已经不需要这一个功能了，需要关闭；
-先基础功能，然后补充日志，最后再调试
+使用hexo和fluid的话，附件名字中不能带有空格，可以有中文，
+经过处理了，原md文档可以随便写，处理后空格会被替换成下划线
 
-使用hexo和fluid的话，附件名字中不能带有空格，可以有中文
-
-插件ui页面，按钮最后做，优先完善功能代码；
-
-路径修改可选，
-
-按键提供一键全体初始化功能，这样就不用手动保存每个文件才能生成fm了
-```
-尝试了没有用
-：关闭 Fancybox 图片增强
-
-在 themes/fluid/_config.yml 里：
-
-post:
-image_zoom:
-enable: false
-```
-```
-hexo解析路径和md文档逻辑写的不一样
-_posts/
-├─ test.md
-├─ test/
-│  └─ image.png
-并且在 test.md 里：
-
-![](image.png)
-```
 //manifest有可能需要同步到ob里面，或者人为修改main为mainjs
-
-/*
-然后再在纯净版本解决附件问题，
-链接的图片附件，ob中统一放在同级别的attachment文件夹中，hexo是放在各自对应的同名文件夹中，
-需要在复制md时，从ob的attachment文件夹中准确找出对应附件然后复制到hexo对应的同名文件夹中，
-其中md content部分在fm部分有涉及到，是需要合在一起编写该功能，还是说另外创建ts单独写
-*/
 
 # 代码
 ```
