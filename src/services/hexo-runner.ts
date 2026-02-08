@@ -77,4 +77,9 @@ export class HexoRunnerService {
         this.serverProcess.kill();
         this.serverProcess = null;
     }
+
+    /** 查询服务器状态（给 UI 用） */
+    public isServerRunning(): boolean {
+        return this.serverProcess !== null;
+    }
 }

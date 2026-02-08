@@ -50,4 +50,5 @@ export class ConfirmModal extends Modal {
             this.open();
         });
     }
+
 }

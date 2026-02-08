@@ -352,6 +352,13 @@ export default class HexoSyncPlugin extends Plugin {
     }
 
     /**
+     * Hexo 本地服务器是否运行中
+     */
+    public isHexoServerRunning(): boolean {
+        return this.hexoRunnerService.isServerRunning();
+    }
+
+    /**
      * confirm 用于调用二次确认和取消的ui界面
      * @param title
      * @param message

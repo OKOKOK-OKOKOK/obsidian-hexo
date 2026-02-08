@@ -45,6 +45,11 @@ export class HexoSyncSettingTab extends PluginSettingTab {
          *
          */
         const currentObsidianAttachmentDirName=this.plugin.settings.obsidianAttachmentDirName
+
+        /**
+         * 用于保存服务器是否打开的状态
+         */
+        const isServerRunning = this.plugin.isHexoServerRunning();
         /* ===========================
          * 基础路径设置
          * =========================== */
@@ -195,10 +200,24 @@ export class HexoSyncSettingTab extends PluginSettingTab {
                     })
             );
 
+        /**
+         * 分界线
+         */
         new Setting(containerEl)
             .setHeading()
             .setName('Hexo 操作（高级）')
             .setDesc('以下操作会直接影响 Hexo 项目文件，请谨慎使用');
+
+        /**
+         * 展示本地服务器当前状态
+         */
+        new Setting(containerEl)
+            .setName('Hexo 本地服务器状态')
+            .setDesc(
+                isServerRunning
+                    ? '🟢 本地预览服务器正在运行'
+                    : '⚪ 未运行'
+            );
 
         /**
          * 本地预览博客
@@ -206,35 +225,52 @@ export class HexoSyncSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('本地预览博客')
             .setDesc(
-                '在 Hexo 项目根目录中启动本地预览服务器\n' +
-                '等同于执行：hexo server\n\n' +
-                '这是一个阻塞进程，请手动关闭终端或停止服务'
+                isServerRunning
+                    ? 'Hexo 本地预览服务器正在运行\n可点击下方按钮停止服务'
+                    : '在 Hexo 项目根目录中启动本地预览服务器\n等同于执行：hexo server'
             )
-            .addButton(button =>
-                button
-                    .setButtonText('启动预览')
-                    .onClick(async () => {
-                        // 基础校验
-                        const hexoRoot = this.plugin.settings.hexoRootDir;
-                        if (!hexoRoot) {
-                            new Notice('请先配置 Hexo 项目根目录');
-                            return;
-                        }
+            .addButton(button => {
+                if (isServerRunning) {
+                    // 关闭服务器
+                    button
+                        .setButtonText('停止预览')
+                        .setWarning()
+                        .onClick(async () => {
+                            try {
+                                await this.plugin.stopHexoServer();
+                                new Notice('Hexo server 已停止');
+                                this.display(); // 立即刷新 UI
+                            } catch {
+                                new Notice('停止 Hexo server 失败，请查看日志');
+                            }
+                        });
+                } else {
+                    // 启动服务器
+                    button
+                        .setButtonText('启动预览')
+                        .onClick(async () => {
+                            const hexoRoot = this.plugin.settings.hexoRootDir;
+                            if (!hexoRoot) {
+                                new Notice('请先配置 Hexo 项目根目录');
+                                return;
+                            }
 
-                        const confirmed = await this.plugin.confirm(
-                            '启动 Hexo 本地预览？',
-                            '这将运行 hexo server，并占用一个本地端口'
-                        );
-                        if (!confirmed) return;
+                            const confirmed = await this.plugin.confirm(
+                                '启动 Hexo 本地预览？',
+                                '这将运行 hexo server，并占用一个本地端口'
+                            );
+                            if (!confirmed) return;
 
-                        try {
-                            await this.plugin.startHexoServer();
-                            new Notice('Hexo server 已启动');
-                        } catch (e) {
-                            new Notice('启动 Hexo server 失败，请查看日志');
-                        }
-                    })
-            );
+                            try {
+                                await this.plugin.startHexoServer();
+                                new Notice('Hexo server 已启动');
+                                this.display(); // 立即刷新 UI
+                            } catch {
+                                new Notice('启动 Hexo server 失败，请查看日志');
+                            }
+                        });
+                }
+            });
 
         /**
          * 清理hexo生成文件
