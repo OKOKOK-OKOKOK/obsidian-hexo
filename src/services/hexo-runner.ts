@@ -1,4 +1,5 @@
 import { exec, spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import path from "path";
 
 export class HexoRunnerService {
 
@@ -38,6 +39,7 @@ export class HexoRunnerService {
     /**
      * 启动 Hexo 本地服务器
      * 等同于：hexo server
+     * todo 当启动失败时，无法检测到失败结果，仍然会继续打印成功日志，不确定是无法检测，还是因为ui改变根本没有检测实际状态就进行变化
      */
     public async runServer(): Promise<void> {
         if (this.serverProcess) {
@@ -45,30 +47,46 @@ export class HexoRunnerService {
             return;
         }
 
+        if (!this.hexoRootDir) {
+            this.logger?.error('[Hexo] hexoRootDir not set');
+            return;
+        }
+
+        const hexoCmd = path.join(
+            this.hexoRootDir,
+            'node_modules',
+            '.bin',
+            'hexo.cmd'
+        );
+
         this.logger?.info('[Hexo] Starting hexo server...');
 
-        // this.serverProcess = spawn(
-        //     'hexo',
-        //     ['server'],
-        //     {
-        //         cwd: this.hexoRootDir,
-        //         shell: true,          // Windows 必须
-        //         stdio: 'pipe'
-        //     }
-        // );
         this.serverProcess = spawn(
-            'npx',
-            ['hexo','server'],{
+            hexoCmd,
+            ['server'],
+            {
                 cwd: this.hexoRootDir,
-                shell:false,
-            })
+                shell: true,
+                stdio: 'pipe'
+            }
+        );
+
+        this.serverProcess.on('error', (err) => {
+            this.logger?.error('[Hexo] Spawn failed: ' + err.message);
+            this.serverProcess = null;
+        });
 
         this.serverProcess.stdout.on('data', (data) => {
-            this.logger?.info(`[hexo server] ${data.toString()}`);
+            const msg = data.toString();
+            this.logger?.info(`[hexo] ${msg}`);
+
+            if (msg.includes('Hexo is running at')) {
+                this.logger?.info('[Hexo] Server started successfully');
+            }
         });
 
         this.serverProcess.stderr.on('data', (data) => {
-            this.logger?.warn(`[hexo server] ${data.toString()}`);
+            this.logger?.warn(`[hexo error] ${data.toString()}`);
         });
 
         this.serverProcess.on('close', (code) => {
@@ -76,6 +94,7 @@ export class HexoRunnerService {
             this.serverProcess = null;
         });
     }
+
 
     /**
      * 停止 Hexo 本地服务器
@@ -87,22 +106,43 @@ export class HexoRunnerService {
             return;
         }
 
-        this.logger?.info('[Hexo] Stopping hexo server...');
-        // this.serverProcess.kill();
-        // this.serverProcess = null;
-        this.serverProcess.kill('SIGINT'); // 比 SIGTERM 更像 Ctrl+C
-        // 兜底：500ms 后强制释放端口
-        setTimeout(() => {
-            this.killPort(4000);
-        }, 500);
+        const pid = this.serverProcess.pid;
 
-        this.serverProcess.once('close', () => {
-            this.stopping = false;
+        if (!pid) {
+            this.logger?.error('[Hexo] Cannot stop server: PID undefined');
             this.serverProcess = null;
-            this.logger?.info('[Hexo] Server fully stopped');
+            return;
+        }
+
+        this.logger?.info(`[Hexo] Stopping server (pid=${pid})...`);
+
+        return new Promise((resolve) => {
+            this.serverProcess?.once('close', (code) => {
+                this.logger?.info(`[Hexo] Server closed (code=${code})`);
+                this.serverProcess = null;
+                resolve();
+            });
+
+            if (process.platform === 'win32') {
+                exec(`taskkill /PID ${pid} /T /F`);
+            } else {
+                process.kill(-pid);
+            }
         });
     }
 
+    /**
+     * 杀掉进程树
+     * @param pid
+     * @private
+     */
+    private killProcessTree(pid: number) {
+        if (process.platform === 'win32') {
+            exec(`taskkill /PID ${pid} /T /F`);
+        } else {
+            process.kill(-pid);
+        }
+    }
     /**
      * 端口兜底清理
      * @param port
@@ -114,13 +154,19 @@ export class HexoRunnerService {
         exec(
             `netstat -ano | findstr :${port}`,
             (err, stdout) => {
-                if (!stdout) return;
+                if (!stdout) {
+                    this.logger?.warn('[Hexo] No process using port');
+                    return;
+                }
 
                 const lines = stdout.trim().split('\n');
+
                 for (const line of lines) {
                     const pid = line.trim().split(/\s+/).pop();
+
                     if (pid) {
                         exec(`taskkill /PID ${pid} /F`);
+                        this.logger?.info(`[Hexo] Killed PID ${pid}`);
                     }
                 }
             }
@@ -131,4 +177,16 @@ export class HexoRunnerService {
     public isServerRunning(): boolean {
         return this.serverProcess !== null && !this.stopping;
     }
+
+    /**
+     * 查找项目内的hexo
+     * @private
+     */
+    private getHexoExecutable(): string {
+        if (process.platform === 'win32') {
+            return path.join(this.hexoRootDir, 'node_modules', '.bin', 'hexo.cmd');
+        }
+        return path.join(this.hexoRootDir, 'node_modules', '.bin', 'hexo');
+    }
+
 }
