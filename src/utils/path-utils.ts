@@ -29,9 +29,7 @@ export class ResolvedPathsService {
 
     /**
      * constructor是创建实例时需要的各种参数，
-     * 创建了实例之后就可以在其他类里面使用这里面的public方法
-     *
-     * learn 不能依赖logger，否则会形成循环依赖，工具只能是单纯的工具，可以用throw处理意外
+     * 创建了实例之后就可以在其他类里面使用这里面的public方
      * Logger
      *   ↑
      *   │ uses

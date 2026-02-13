@@ -51,9 +51,6 @@ export class AttachmentService {
         newContent = newContent.replace(
             imageRegex,
             (full, obsidianPath, markdownPath) => {
-                /**
-                 * learn ?? 表示优先级
-                 */
                 const rawPath = obsidianPath ?? markdownPath;
                 if (!rawPath) {
                     this.logger?.debug(

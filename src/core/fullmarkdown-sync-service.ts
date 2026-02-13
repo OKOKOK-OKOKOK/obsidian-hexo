@@ -12,7 +12,6 @@ export class FullMarkdownSyncService {
 
     /**
      * 全量同步 Obsidian 中的 Markdown 到 Hexo
-     * question Promise 有什么用
      */
     public async syncAllFromObsidian(): Promise<void> {
         this.logger.info('[OBS2HEXO] Full sync started');
@@ -25,7 +24,7 @@ export class FullMarkdownSyncService {
 
         for (const file of files) {
             try {
-                this.singleSyncService.syncSingleMarkdown(file);
+                await this.singleSyncService.syncSingleMarkdown(file);
             } catch (e) {
                 this.logger.error(
                     `[OBS2HEXO] Failed: ${file.path}`

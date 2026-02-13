@@ -249,9 +249,6 @@ export default class HexoSyncPlugin extends Plugin {
                     return;
                 }
                 // 核心修改：用类型断言绕过TS检查
-                /**
-                 * learn 类型断言跳过检测
-                 */
                 (this.app as any).openWithDefaultApp(hexoRoot);
             }
         });
@@ -284,14 +281,29 @@ export default class HexoSyncPlugin extends Plugin {
      */
     private registerEvents() {
 
+        //这个抽象成函数是为了防止以后可能还会添加新的功能
         this.registerAutoSyncOnModify();
     }
 
-    private registerAutoSyncOnModify() {
+    private registerAutoSyncOnModify()  {
         this.registerEvent(
             this.app.vault.on('modify', (file) => {
                 if (!this.isMarkdownFile(file)) return;
-                this.handleMarkdownModified(file);
+                this.handleMarkdownModified(file)
+                    .catch(err=>{
+                        this.logger.error(
+                            '[OBS2HEXO] Auto sync failed',
+                            err);
+                    });
+                /**
+                 * 此处async无法继续传递，因为obsidian本身会作为async的终点
+                 * 需要我手动兜底catch，否则promise的rejected将会变成野错误
+                 */
+
+                /**
+                 * 直接使用‘.catch’的写法吗，看上去很方便，与太try catch有什么区别
+                 * 前者只负责一处错误的捕获，后者负责整个代码块的错误捕获
+                 */
             })
         );
     }
@@ -300,9 +312,9 @@ export default class HexoSyncPlugin extends Plugin {
         return file instanceof TFile && file.extension === 'md';
     }
 
-    private handleMarkdownModified(file: TFile) {
+    private async handleMarkdownModified(file: TFile):Promise<void> {
         this.logger.info(`[OBS2HEXO] File modified: ${file.path}`);
-        this.syncSingleMarkdownService.syncSingleMarkdown(file);
+        await this.syncSingleMarkdownService.syncSingleMarkdown(file);
     }
 
     /**

@@ -17,9 +17,6 @@ export class HexoSyncSettingTab extends PluginSettingTab {
     plugin: HexoSyncPlugin;
 
     constructor(app: App, plugin: HexoSyncPlugin) {
-        /**
-         * learn 看一下这里的super用法的讲解
-         */
         super(app, plugin);
         this.plugin = plugin;
     }
@@ -211,6 +208,7 @@ export class HexoSyncSettingTab extends PluginSettingTab {
 
         /**
          * 展示本地服务器当前状态
+         * todo 服务器状态延时修改，这里在鼠标点击之后就立即读取刷新界面了，导致读不到实际的状态变量，根治方法是写好服务器关闭的函数，避免延时前置kill port功能
          */
         new Setting(containerEl)
             .setName('Hexo 本地服务器状态')

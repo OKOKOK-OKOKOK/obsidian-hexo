@@ -56,7 +56,7 @@ export class SingleMarkdownSyncService {
      * 同步 md attachment
      * @param file
      */
-    syncSingleMarkdown(file: TFile): void {
+    public async syncSingleMarkdown(file: TFile): Promise<void> {
         try {
             //===========================查找数据库，文件路径
             /**
@@ -65,32 +65,35 @@ export class SingleMarkdownSyncService {
 
             this.logger.info(`[OBS2HEXO] Sync start: ${file.path}`);
 
-            const ctx: SyncContext = {
-                file,
-                /**
-                 * learn 类型断言，阻止 ts 检测
-                 */
-                paths: {} as ResolvedPaths,
-                rawContent: '',
-                content: '',
-                changed: false,
-            };
+            // const ctx: SyncContext = {
+            //     file,
+            //     paths: {} as ResolvedPaths,
+            //     rawContent: '',
+            //     content: '',
+            //     changed: false,
+            // };
 
             //paths
             const paths = this.resolvedPathsService.resolvedPaths(file);
             if (!paths) return;
-            ctx.paths = paths;
+            // ctx.paths = paths;
 
             //rawContent
             //content
-            const rawContent = fs.readFileSync((ctx.paths.absoluteSrcPath), 'utf8');
+            //const rawContent = fs.readFileSync((ctx.paths.absoluteSrcPath), 'utf8');
 
-            /**
-             * learn 避免直接对 ctx 赋值，因为会在赋值之前读取数据，但是这时候为空，会直接报错
-             */
-            ctx.paths = paths;
-            ctx.rawContent = rawContent;
-            ctx.content = rawContent;
+            const rawContent = fs.readFileSync((paths.absoluteSrcPath), 'utf8');
+            const ctx: SyncContext = {
+                file,
+                paths,
+                rawContent,
+                content: rawContent,
+                changed: false,
+            };
+
+            // ctx.paths = paths;
+            // ctx.rawContent = rawContent;
+            // ctx.content = rawContent;
 
             this.logger.debug('[OBS2HEXO] FrontMatter stage start');
             this.processFrontMatterStage(ctx);
@@ -153,9 +156,8 @@ export class SingleMarkdownSyncService {
         ctx.changed = markdownResult.changed;
 
     }
-//D:\Obsidian\Obsidian\source\_posts\欢迎.md'
+//D:\Obsidian\Obsidian\source\_posts\欢迎.md
     /**
-     * question 几乎没有什么新添加处理的功能，感觉这个封装多此一举，但是比较整齐，可能方便之后修改
      * @param ctx
      * @private
      */

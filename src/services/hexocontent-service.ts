@@ -22,9 +22,6 @@ export class HexoContentService {
     }
 
     private get backupRootDir(): string {
-        /**
-         * question 新建文件夹会污染hexo吗？
-         */
         return path.join(this.hexoRootDir, '.hexo-sync-backup');
     }
 
