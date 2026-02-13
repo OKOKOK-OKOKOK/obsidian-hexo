@@ -406,6 +406,8 @@ export default class HexoSyncPlugin extends Plugin {
         this.logger.info('[Hexo] Full rebuild finished');
     }
 
-
-
 }
+
+/**
+ * todo 部署功能有问题，部署失败，只能本地预览
+ */
